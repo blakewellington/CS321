@@ -1,0 +1,17 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id A) ) (Id a) (NewObj (Id A) ()) 
+   Print (Call (Id a) (Id go) ()) 
+ ClassDecl (Id A) () 
+  MethodDecl (IntType) (Id go) ()
+   If (Binop < (IntVal 1) (IntVal 2) ) 
+    Print (IntVal 1) 
+   Else
+    {
+     If (Binop == (Binop * (IntVal 3) (IntVal 4) ) (IntVal 10) ) 
+      Print (IntVal 4) 
+     Else
+      Print (IntVal 5) 
+    }
+   Return (IntVal 6) 

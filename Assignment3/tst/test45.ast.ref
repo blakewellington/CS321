@@ -1,0 +1,6 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (IntType) (Id i) (Binop + (IntVal 2) (IntVal 3) ) 
+   VarDecl (IntType) (Id j) (Binop * (IntVal 2) (IntVal 1) ) 
+   Print (Binop + (Id i) (Id j) ) 

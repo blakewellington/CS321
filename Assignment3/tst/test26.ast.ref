@@ -1,0 +1,12 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (IntType) (Id i) (Call () (Id foo) ((IntVal 2) )) 
+   Print (Id i) 
+  MethodDecl (IntType) (Id foo) ((Formal (IntType) (Id i) ) )
+   If (Binop > (Id i) (IntVal 1) ) 
+    Return (Call () (Id bar) ()) 
+   Else
+    Return (IntVal 3) 
+  MethodDecl (IntType) (Id bar) ()
+   Return (Call () (Id foo) ((IntVal 1) )) 

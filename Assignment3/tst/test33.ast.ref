@@ -1,0 +1,9 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (IntType) (Id i) (IntVal 2) 
+   VarDecl (IntType) (Id j) (IntVal 3) 
+   VarDecl (IntType) (Id k) (Binop + (Id i) (Id j) ) 
+   Print (Id k) 
+   If (Binop == (Id k) (IntVal 5) ) 
+    Print (StrVal "OK") 

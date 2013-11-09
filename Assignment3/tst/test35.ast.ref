@@ -1,0 +1,10 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id body) ) (Id b) (NewObj (Id body) ()) 
+   VarDecl (IntType) (Id i) () 
+   Assign (Id i) (Call (Id b) (Id foo) ((IntVal 1) (IntVal 2) )) 
+   Print (Id i) 
+ ClassDecl (Id body) () 
+  MethodDecl (IntType) (Id foo) ((Formal (IntType) (Id x) ) (Formal (IntType) (Id y) ) )
+   Return (Binop + (Id x) (Id y) ) 

@@ -1,0 +1,13 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id A) ) (Id a) (NewObj (Id A) ()) 
+   Print (Call (Id a) (Id go) ()) 
+ ClassDecl (Id A) () 
+  MethodDecl (IntType) (Id go) ()
+   VarDecl (ArrayType (IntType) ) (Id b) () 
+   Assign (Id b) (NewArray (IntType) 2) 
+   Assign (ArrayElm (Id b) (IntVal 0) ) (IntVal 3) 
+   Assign (ArrayElm (Id b) (IntVal 1) ) (IntVal 4) 
+   Print (ArrayElm (Id b) (IntVal 1) ) 
+   Return (ArrayElm (Id b) (IntVal 0) ) 

@@ -1,0 +1,9 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id A) ) (Id x) (NewObj (Id A) ()) 
+   VarDecl (ObjType (Id B) ) (Id y) (NewObj (Id B) ()) 
+ ClassDecl (Id A) () 
+  VarDecl (ObjType (Id B) ) (Id b) () 
+ ClassDecl (Id B) () 
+  VarDecl (ObjType (Id A) ) (Id a) () 

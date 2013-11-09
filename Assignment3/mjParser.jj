@@ -1,0 +1,240 @@
+// Program demo for CS321 Compilers and Language Design I Lab 4
+// Jingke Li, Portland State University
+
+// Starting program for Assignment 3.
+//
+
+// This option can be turned on to help debugging your program.
+// options { DEBUG_PARSER=true; }
+
+PARSER_BEGIN(mjParser0)
+public class mjParser0 {
+  public static void main(String [] args) {
+    try {
+      if (args.length == 1) {
+	FileInputStream stream = new FileInputStream(args[0]);
+	Ast.Program p = new mjParser(stream).Program();
+	stream.close();
+	p.dump();
+      } else {
+	System.out.println("Need a file name as command-line argument.");
+      }
+    } catch (TokenMgrError e) {
+      System.err.println(e.toString());
+    } catch (Exception e) {
+      System.err.println(e.toString());
+    }
+  }
+}
+PARSER_END(mjParser0)
+
+//
+// LEXER SECTION ---------------------------------------------------------------
+//
+
+SKIP : /* WHITE SPACE */
+{
+  " " | "\t" | "\n" | "\r" | "\f"
+}
+
+SKIP : /* COMMENTS */
+{
+  <SL_COMMENT:   "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+| <ML_COMMENT:   "/*" ( ~["*"] | (["*"])+ (~["/"]) )* (["*"])+ "/">
+| <UNTERMINATED: "/*" ( ~["*"] | (["*"])+ (~["/"]) )* (["*"])+ >
+    { if (true) throw new TokenMgrError("Unterminated multi-line comments ", 0); }  
+}
+
+TOKEN : /* KEYWORDS */
+{
+  <BOOLEAN: "boolean">   
+| <CLASS:   "class">
+| <ELSE:    "else">
+| <EXTENDS: "extends">
+| <FALSE:   "false">
+| <IF:      "if">
+| <INT:     "int">
+| <MAIN:    "main">
+| <NEW:     "new">
+| <PUBLIC:  "public">
+| <RETURN:  "return">
+| <STATIC:  "static">
+| <STRING:  "String">
+| <PRINT:   "System.out.println">
+| <TRUE:    "true">
+| <VOID:    "void">         
+| <WHILE:   "while">
+| <#DIGIT:  ["0"-"9"]>
+| <#LETTER: (["A"-"Z"]|["a"-"z"])>
+}
+
+TOKEN : /* INTLITERAL */
+{
+  <INTLITERAL: (<DIGIT>)+> 
+  { try { 
+      Integer.parseInt(matchedToken.image); 
+    } catch (Exception e) { 
+	throw new TokenMgrError("Lexical error at line " + matchedToken.beginLine + 
+				", column " + matchedToken.beginColumn + 
+				". Integer overflow: " + matchedToken.image, 0);
+    } 
+  }
+}
+
+TOKEN : /* STRLITERAL */
+{
+  <STRLITERAL: ("\"" (~["\"","\n"])+ "\"")>
+  { if (matchedToken.image.length() > 257) 
+      throw new TokenMgrError("Lexical error at line " + matchedToken.beginLine + 
+			      ", column " + matchedToken.beginColumn + 
+			      ". String length over 255: " + matchedToken.image, 0); 
+  }
+}
+
+TOKEN : /* ID */
+{
+  <ID: <LETTER> (<LETTER>|<DIGIT>|"_")*>
+  { if (matchedToken.image.length() > 255) 
+      throw new TokenMgrError("Lexical error at line " + matchedToken.beginLine + 
+			      ", column " + matchedToken.beginColumn + 
+			      ". Id length over 255: " + matchedToken.image, 0);
+  }
+}
+
+//
+// PARSER SECTION ---------------------------------------------------------------
+//
+// This version is based on the raw grammar of miniJava --- 
+//   it is ambiguous, left-recursive, and has common-prefixes.
+//
+
+// Program -> {ClassDecl}
+//
+void Program(): {}
+{
+  ( ClassDecl() )*
+}
+
+// ClassDecl -> "class" <ID> ["extends" <ID>] "{" {VarDecl} {MethodDecl} "}"
+void ClassDecl(): {}
+{
+  "class" <ID> [ "extends" <ID> ] "{" ( VarDecl() )* ( MethodDecl() )* "}"
+}
+
+// MethodDecl -> "public" (Type | "void") <ID> "(" [Formals] ")" 
+//                 "{" {VarDecl} {Statement} "}"
+//            |  "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")"
+//                 "{" {VarDecl} {Statement} "}" 
+//
+void MethodDecl(): {} 
+{
+  "public" (Type() | "void") <ID> "(" [ Formals() ] ")" 
+          "{" ( VarDecl() )* ( Statement() )* "}"
+|  "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")"
+          "{" ( VarDecl() )* ( Statement() )* "}"
+}
+
+// Formals -> Type <ID> {"," Type <ID>}
+//
+void Formals(): {} 
+{
+  Type() <ID> ( "," Type() <ID> )*
+}
+
+// VarDecl -> Type <ID> ["=" InitExpr] ";"
+//
+void VarDecl(): {}
+{
+  Type() <ID> [ "=" InitExpr() ] ";"
+}
+
+// Type -> ("int" | "boolean") ["[" "]"] 
+//      |  <ID>
+//
+void Type(): {}
+{
+  ("int" | "boolean") [ "[" "]" ] 
+|  <ID>
+}
+
+// Statement -> "{" {Statement} "}"
+//           |  Lvalue "=" InitExpr ";"
+//           |  Lvalue "(" [Args] ")" ";"
+//           |  "if" "(" Expr ")" Statement ["else" Statement]
+//           |  "while" "(" Expr ")" Statement
+//           |  "System.out.println" "(" [Expr | <STRLITERAL>] ")" ";"
+//           |  "return" [Expr] ";"
+//
+void Statement (): {}
+{
+  "{" ( Statement() )* "}"
+| Lvalue() "=" InitExpr() ";"
+| Lvalue() "(" [ Args() ] ")" ";"
+| "if" "(" Expr() ")" Statement() [ "else" Statement() ]
+| "while" "(" Expr() ")" Statement()
+| "System.out.println" "(" [ Expr() | <STRLITERAL> ] ")" ";"
+| "return" [ Expr() ] ";"
+}
+
+// Args -> Expr {"," Expr}
+//
+void Args(): {}
+{
+  Expr() ( "," Expr() )*
+}
+
+// InitExpr -> "new" ("int" | "boolean") "[" <INTLITERAL> "]" 
+//          |  "new" <ID> "(" [Args] ")"
+//          |  Expr 
+//
+void InitExpr(): {}
+{
+  "new" ( "int" | "boolean" ) "[" <INTLITERAL> "]" 
+| "new" <ID> "(" [ Args() ] ")"
+| Expr()
+}
+
+// Expr -> Expr Binop Expr 
+//      |  Unop Expr
+//      |  "(" Expr ")" 
+//      |  Lvalue ["(" [Args] ")"]
+//      |  Literal
+//
+void Expr(): {}
+{
+  Expr() Binop() Expr() 
+| Unop() Expr()
+| "(" Expr() ")" 
+| Lvalue() [ "(" [ Args() ] ")" ]
+| Literal()
+}
+
+// Lvalue -> <ID> {"." <ID>} ["[" Expr "]"]
+//
+void Lvalue(): {}
+{
+  <ID> ( "." <ID> )* [ "[" Expr() "]" ]
+}
+
+// Literal -> <INTLITERAL> | "true" | "false"
+//
+void Literal(): {}
+{
+  <INTLITERAL> | "true" | "false"
+}
+
+// Binop -> "+" | "-" | "*" | "/" | "&&" | "||" 
+//       |  "==" | "!=" | "<" | "<=" | ">" | ">=" 
+//
+void Binop(): {}
+{
+  "+" | "-" | "*" | "/" | "&&" | "||" 
+| "==" | "!=" | "<" | "<=" | ">" | ">=" 
+}
+
+// Unop -> "-" | "!"
+//
+void Unop(): {}
+{
+  "-" | "!"
+}

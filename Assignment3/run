@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Script for running miniJava compiler tests. (Jingke Li) 
+#
+# Usage:
+#   run tst/test01.java      -- test a single program 
+#   run tst/test*.java       -- test all programs
+#
+# The script will show diffs between the compiler's output and the
+# reference version. If it runs in silence, it means a perfect match.
+#
+for i
+do
+	d=`dirname $i`
+	f=`basename $i .java`
+	echo $d/$f:
+	java mjParser $d/$f.java 1> $d/$f.ast 2>$d/$f.perr
+	if [ -r $d/$f.ast.ref ]; then diff -w $d/$f.ast $d/$f.ast.ref; fi
+	if [ -r $d/$f.perr.ref ]; then diff -w $d/$f.perr $d/$f.perr.ref; 
+	else cat $d/$f.perr; fi
+done
+exit 0
+

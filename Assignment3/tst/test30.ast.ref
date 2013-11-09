@@ -1,0 +1,10 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id A) ) (Id A) (NewObj (Id A) ()) 
+   Assign (Field (Id A) (Id A) ) (Call (Id A) (Id A) ((IntVal 2) )) 
+   Print (Field (Id A) (Id A) ) 
+ ClassDecl (Id A) () 
+  VarDecl (IntType) (Id A) () 
+  MethodDecl (IntType) (Id A) ((Formal (IntType) (Id i) ) )
+   Return (Id i) 
