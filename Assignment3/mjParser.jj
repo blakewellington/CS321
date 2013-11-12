@@ -1,4 +1,6 @@
 // Program demo for CS321 Compilers and Language Design I Lab 4
+// Blake Wellington
+// Modified from:
 // Jingke Li, Portland State University
 
 // Starting program for Assignment 3.
@@ -7,8 +9,8 @@
 // This option can be turned on to help debugging your program.
 // options { DEBUG_PARSER=true; }
 
-PARSER_BEGIN(mjParser0)
-public class mjParser0 {
+PARSER_BEGIN(mjParser)
+public class mjParser {
   public static void main(String [] args) {
     try {
       if (args.length == 1) {
@@ -26,7 +28,7 @@ public class mjParser0 {
     }
   }
 }
-PARSER_END(mjParser0)
+PARSER_END(mjParser)
 
 //
 // LEXER SECTION ---------------------------------------------------------------
@@ -104,34 +106,77 @@ TOKEN : /* ID */
 //
 // PARSER SECTION ---------------------------------------------------------------
 //
-// This version is based on the raw grammar of miniJava --- 
-//   it is ambiguous, left-recursive, and has common-prefixes.
+// This version is based on the revised grammar of miniJava --- 
+//   ambiguity, left-recursion, and common-prefixes have been addressed
 //
 
-// Program -> {ClassDecl}
+// The Grammar:
+//        ===================  My new Grammar  ===================
+//        Program 					->	{ClassDecl}
+//        
+//        ClassDecl					->	"class" <ID> ["extends" <ID>] "{" {VarDecl} {MethodDecl} "}"
+//        				
+//        MethodDecl 				-> 	"public" (Type | "void") <ID> "(" [Formals] ")" "{" {VarDecl} {Statement} "}"
+//        							| "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")" "{" {VarDecl} {Statement} "}"
+//        				
+//        Formals 					-> 	Type <ID> {"," Type <ID>}
+//        
+//        VarDecl 					-> 	Type <ID> ["=" InitExpr] ";"
+//        
+//        Type 						-> 	("int" | "boolean") ["[" "]"]
+//        							| <ID>
+//        				
+//        Statement 				-> 	"{" {Statement} "}"
+//        							| Lvalue ( ("=" InitExpr ) | ( Lvalue "(" [Args] ")" ) ";"
+//        							| "if" "(" Expression ")" Statement ["else" Statement]
+//        							| "while" "(" Expression ")" Statement
+//        							| "System.out.println" "(" [Expression | <STRLITERAL>] ")" ";"
+//        							| "return" [Expression] ";"
+//        
+//        Expression					->	ConditionalExpression ( "=" Expression )?
+//        							| Lvalue ( ("(" [Args] ")") | ("." "length" "(" ")") )?
+//        							| Literal
+//        ConditionalExpression		->	ConditionalAndExpression ( "||" ConditionalAndExpression )*
+//        ConditionalAndExpression	->	EqualityExpression ( "&&" EqualityExpression )*
+//        EqualityExpression			->	RelationalExpression ( ( "==" | "!=" ) RelationalExpression )*
+//        RelationalExpression		->	AdditiveExpression ( ( "<" | ">" | "<=" | ">=" ) AdditiveExpression )*
+//        AdditiveExpression			->	MultiplicativeExpression ( ( "+" | "-" ) MultiplicativeExpression )*
+//        MultiplicativeExpression	->	UnaryExpression ( ( "*" | "/" ) UnaryExpression )*
+//        UnaryExpression				:=	( "!" | "-" ) UnaryExpression
+//        							| "(" Expression ")"
+//        
+//        InitExpr					->	"new" PrimitiveType "[" <INTLITERAL> "]"
+//        							|	"new" ID> "(" [Args] ")"
+//        							| Expression
+//        
+//        Args 						-> 	Expression {"," Expression}
+//        
+//        PrimitiveType				-> ("boolean" | "int")
+//        
+//        Lvalue 		-> 	<ID> {"." <ID>} ["[" Expr "]"]
+//        
+//        Literal 	-> 	<INTLITERAL> | "true" | "false"
+
+
+// 		Program -> {ClassDecl}
 //
 void Program(): {}
 {
   ( ClassDecl() )*
 }
 
-// ClassDecl -> "class" <ID> ["extends" <ID>] "{" {VarDecl} {MethodDecl} "}"
+//      ClassDecl	->	"class" <ID> ["extends" <ID>] "{" {VarDecl} {MethodDecl} "}"
 void ClassDecl(): {}
 {
-  "class" <ID> [ "extends" <ID> ] "{" ( VarDecl() )* ( MethodDecl() )* "}"
+	"class" <ID> [ "extends" <ID> ] "{" ( VarDecl() )* ( MethodDecl() )* "}"
 }
 
-// MethodDecl -> "public" (Type | "void") <ID> "(" [Formals] ")" 
-//                 "{" {VarDecl} {Statement} "}"
-//            |  "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")"
-//                 "{" {VarDecl} {Statement} "}" 
-//
-void MethodDecl(): {} 
+//        MethodDecl 				-> 	"public" (Type | "void") <ID> "(" [Formals] ")" "{" {VarDecl} {Statement} "}"
+//        							| "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")" "{" {VarDecl} {Statement} "}"
+void MethodDecl(): {}
 {
-  "public" (Type() | "void") <ID> "(" [ Formals() ] ")" 
-          "{" ( VarDecl() )* ( Statement() )* "}"
-|  "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")"
-          "{" ( VarDecl() )* ( Statement() )* "}"
+  "public" (Type() | "void") <ID> "(" [ Formals() ] ")" "{" ( VarDecl() )* ( Statement() )* "}"
+|  "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")" "{" ( VarDecl() )* ( Statement() )* "}"
 }
 
 // Formals -> Type <ID> {"," Type <ID>}
@@ -148,93 +193,118 @@ void VarDecl(): {}
   Type() <ID> [ "=" InitExpr() ] ";"
 }
 
-// Type -> ("int" | "boolean") ["[" "]"] 
-//      |  <ID>
-//
+//        
+//  Type 		-> 	("int" | "boolean") ["[" "]"]
+//        			| <ID>
 void Type(): {}
 {
-  ("int" | "boolean") [ "[" "]" ] 
-|  <ID>
+  ( "int" | "boolean" ) ("[" "]")*
+  | <ID>
 }
 
-// Statement -> "{" {Statement} "}"
-//           |  Lvalue "=" InitExpr ";"
-//           |  Lvalue "(" [Args] ")" ";"
-//           |  "if" "(" Expr ")" Statement ["else" Statement]
-//           |  "while" "(" Expr ")" Statement
-//           |  "System.out.println" "(" [Expr | <STRLITERAL>] ")" ";"
-//           |  "return" [Expr] ";"
-//
-void Statement (): {}
+//        				
+//        Statement 	-> 	"{" {Statement} "}"
+//        			| Lvalue ( ("=" InitExpr ) | ( Lvalue "(" [Args] ")" ) ";"
+//        			| "if" "(" Expression ")" Statement ["else" Statement]
+//        			| "while" "(" Expression ")" Statement
+//        			| "System.out.println" "(" [Expression | <STRLITERAL>] ")" ";"
+//        			| "return" [Expression] ";"
+void Statement(): {}
 {
-  "{" ( Statement() )* "}"
-| Lvalue() "=" InitExpr() ";"
-| Lvalue() "(" [ Args() ] ")" ";"
-| "if" "(" Expr() ")" Statement() [ "else" Statement() ]
-| "while" "(" Expr() ")" Statement()
-| "System.out.println" "(" [ Expr() | <STRLITERAL> ] ")" ";"
-| "return" [ Expr() ] ";"
+	( "{" Statement() "}" )
+	| Lvalue() ( ("=" InitExpr() ) | ( Lvalue() "(" (Args())*  ")" ) ) ";"
+	| ( "if" "(" Expression() ")" Statement() ("else" Statement())* )
+	| ( "while" "(" Expression() ")" Statement() )
+	| ( "System.out.println" "(" ( Expression() | <STRLITERAL> )* ")" ";" )
+	| ( "return" (Expression())* ";" )
 }
 
-// Args -> Expr {"," Expr}
-//
-void Args(): {}
+//        
+//        Expression					->	ConditionalExpression ( "=" Expression )?
+//        							| Lvalue ( ("(" [Args] ")") | ("." "length" "(" ")") )?
+//        							| Literal
+void Expression(): {}
 {
-  Expr() ( "," Expr() )*
+	ConditionalExpression() ( "=" Expression() )?
+	| Lvalue() ( ("(" (Args())* ")") | ("." "length" "(" ")") )?
+	| Literal()
 }
 
-// InitExpr -> "new" ("int" | "boolean") "[" <INTLITERAL> "]" 
-//          |  "new" <ID> "(" [Args] ")"
-//          |  Expr 
-//
+//        ConditionalExpression		->	ConditionalAndExpression ( "||" ConditionalAndExpression )*
+void ConditionalExpression(): {}
+{
+	ConditionalAndExpression() ( "||" ConditionalAndExpression() )*
+}
+
+//        ConditionalAndExpression	->	EqualityExpression ( "&&" EqualityExpression )*
+void ConditionalAndExpression(): {}
+{
+	EqualityExpression() ( "&&" EqualityExpression() )*
+}
+//        EqualityExpression			->	RelationalExpression ( ( "==" | "!=" ) RelationalExpression )*
+void EqualityExpression(): {}
+{
+  RelationalExpression() ( ( "==" | "!=" ) RelationalExpression() )*
+}
+//        RelationalExpression		->	AdditiveExpression ( ( "<" | ">" | "<=" | ">=" ) AdditiveExpression )*
+void RelationalExpression(): {}
+{
+  AdditiveExpression() ( ( "<" | ">" | "<=" | ">=" ) AdditiveExpression() )*
+}
+//        AdditiveExpression			->	MultiplicativeExpression ( ( "+" | "-" ) MultiplicativeExpression )*
+void AdditiveExpression(): {}
+{
+  MultiplicativeExpression() ( ( "+" | "-" ) MultiplicativeExpression() )*
+}
+
+//        MultiplicativeExpression	->	UnaryExpression ( ( "*" | "/" ) UnaryExpression )*
+void MultiplicativeExpression(): {}
+{
+  UnaryExpression() ( ( "*" | "/" ) UnaryExpression() )*
+}
+
+//        UnaryExpression				->	( "!" | "-" ) UnaryExpression
+//        							| "(" Expression ")"
+void UnaryExpression(): {}
+{
+  ( "!" | "-" ) UnaryExpression()
+  | "(" Expression() ")"
+}
+
+//        
+//        InitExpr					->	"new" PrimitiveType "[" <INTLITERAL> "]"
+//        							|	"new" ID> "(" [Args] ")"
+//        							| Expression
 void InitExpr(): {}
 {
-  "new" ( "int" | "boolean" ) "[" <INTLITERAL> "]" 
-| "new" <ID> "(" [ Args() ] ")"
-| Expr()
+	"new" PrimitiveType() "[" <INTLITERAL> "]"
+	| "new" <ID> "(" (Args())* ")"
+	| Expression()
+
 }
 
-// Expr -> Expr Binop Expr 
-//      |  Unop Expr
-//      |  "(" Expr ")" 
-//      |  Lvalue ["(" [Args] ")"]
-//      |  Literal
-//
-void Expr(): {}
+//        
+//        Args 						-> 	Expression {"," Expression}
+//        
+void Args(): {}
 {
-  Expr() Binop() Expr() 
-| Unop() Expr()
-| "(" Expr() ")" 
-| Lvalue() [ "(" [ Args() ] ")" ]
-| Literal()
+	Expression() ( "," Expression() )*
 }
 
-// Lvalue -> <ID> {"." <ID>} ["[" Expr "]"]
-//
+//        PrimitiveType				-> ("boolean" | "int")
+//        
+void PrimitiveType(): {}
+{
+	("boolean" | "int")
+}
+//        Lvalue 		-> 	<ID> {"." <ID>} ["[" Expr "]"]
 void Lvalue(): {}
 {
-  <ID> ( "." <ID> )* [ "[" Expr() "]" ]
+	<ID> ("." <ID>)* ("[" Expression() "]")?
 }
-
-// Literal -> <INTLITERAL> | "true" | "false"
-//
+//        
+//        Literal 	-> 	<INTLITERAL> | "true" | "false"
 void Literal(): {}
 {
-  <INTLITERAL> | "true" | "false"
-}
-
-// Binop -> "+" | "-" | "*" | "/" | "&&" | "||" 
-//       |  "==" | "!=" | "<" | "<=" | ">" | ">=" 
-//
-void Binop(): {}
-{
-  "+" | "-" | "*" | "/" | "&&" | "||" 
-| "==" | "!=" | "<" | "<=" | ">" | ">=" 
-}
-
-// Unop -> "-" | "!"
-//
-void Unop(): {}
-{
-  "-" | "!"
+	<INTLITERAL> | "true" | "false"
 }
