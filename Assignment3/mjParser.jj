@@ -9,7 +9,7 @@
 // This option can be turned on to help debugging your program.
 // options { DEBUG_PARSER=true; }
 
-// options { LOOKAHEAD=2; }
+ options { LOOKAHEAD=2; }
 // TODO Put LOOKAHEAD directive within the methods that require it.
 
 PARSER_BEGIN(mjParser)
@@ -125,26 +125,36 @@ TOKEN : /* ID */
 //       
 //        ClassDecl		->	"class" <ID> ["extends" <ID>] "{" {VarDecl} {MethodDecl} "}"
 //        				
-//        MethodDecl 		-> 	"public" (Type | "void") <ID> "(" [Formals] ")" "{" {VarDecl} {Statement} "}"
-//        				| "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")" "{" {VarDecl} {Statement} "}"
+//        MethodDecl 	-> "public" 
+//            		   (
+//         	             ( Type | "void") <ID> "(" [Formals] )
+//        		     | ( "static" "void" "main" "(" "String" "[" "]" <ID> )
+//                	   ( ")" "{" {VarDecl} {Statement} "}")
+//                 	   )
 //        				
 //        Formals 		-> 	Type <ID> {"," Type <ID>}
 //        
 //        VarDecl 		-> 	Type <ID> ["=" InitExpr] ";"
 //        
-//        Type 			-> 	("int" | "boolean") ["[" "]"]
+//        Type 			-> 	(<BOOLEAN> | <INT>) ["[" "]"]
 //        				| <ID>
 //        				
 //        Statement 		-> 	"{" {Statement} "}"
-//        				| Lvalue ( ("=" InitExpr ) | ( Lvalue "(" [Args] ")" ) ";"
+//        				| Lvalue ( ("=" InitExpr ) | ( "(" [Args] ")" ) ";"
 //        				| "if" "(" Expr ")" Statement ["else" Statement]
 //        				| "while" "(" Expr ")" Statement
 //        				| "System.out.println" "(" [Expr | <STRLITERAL>] ")" ";"
 //        				| "return" [Expr] ";"
+//
+//        Args 			-> 	Expr {"," Expr}
+//        
+//        InitExpr		->	"new" ((<BOOLEAN> | <INT>) "[" <INTLITERAL> "]") | (ID> "(" [Args] ")")
+//        				| Expr
+//        
 //       
 //        Expr		->	CondExpr ( "=" Expr )?
-//        				| Lvalue ( ("(" [Args] ")") | ("." "length" "(" ")") )?
-//        				| Literal
+//        			| Lvalue ( ("(" [Args] ")") | ("." "length" "(" ")") )?
+//        			| Literal
 //        CondExpr		->	CondAndExpr ( "||" CondAndExpr )*
 //        CondAndExpr	->	EqExpr ( "&&" EqExpr )*
 //        EqExpr		->	RelExpr ( ( "==" | "!=" ) RelExpr )*
@@ -153,14 +163,6 @@ TOKEN : /* ID */
 //        MultExpr	->	UnaryExpr ( ( "*" | "/" ) UnaryExpr )*
 //        UnaryExpr		->	( "!" | "-" ) UnaryExpr
 //        					| "(" Expr ")"
-//        
-//        InitExpr		->	"new" PrimitiveType "[" <INTLITERAL> "]"
-//        				|	"new" ID> "(" [Args] ")"
-//        				| Expr
-//        
-//        Args 			-> 	Expr {"," Expr}
-//        
-//        PrimitiveType		-> ("boolean" | "int")
 //        
 //        Lvalue 		-> 	<ID> {"." <ID>} ["[" Expr "]"]
 //        
@@ -175,164 +177,290 @@ Ast.Program Program():
   Ast.ClassDeclList cl = new Ast.ClassDeclList();
 }
 {
-  ( c=ClassDecl() {cl.add(c);} )*
+  ( c=ClassDecl() {cl.add(c);} )* <EOF>
   { return new Ast.Program(cl); }
 }
 
 // ClassDecl	->	"class" <ID> ["extends" <ID>] "{" {VarDecl} {MethodDecl} "}"
-Ast.ClassDeclList ClassDecl(): {}
+Ast.ClassDecl ClassDecl(): 
 {
-	<CLASS> <ID> [ <EXTENDS> <ID> ] "{" ( VarDecl() )* ( MethodDecl() )* "}"
+  Ast.VarDecl v;
+  Ast.MethodDecl m;
+  Ast.MethodDeclList ml = new Ast.MethodDeclList();
+  Ast.VarDeclList vl = new Ast.VarDeclList();
+  Token class_token; 
+  Token parent_token; 
+  Ast.Id c;
+  Ast.Id p = null;
+}
+{
+  <CLASS> class_token=<ID> { c = new Ast.Id(class_token.image); } 
+  [ <EXTENDS> parent_token=<ID>  { p = new Ast.Id(parent_token.image); } ] 
+    "{" 
+       ( v=VarDecl() { vl.add(v); } )* 
+       ( m=MethodDecl() { ml.add(m); } )*
+    "}"
+
+  { return new Ast.ClassDecl(c, p, vl, ml); }
 }
 
-// MethodDecl 	-> 	"public" (Type | "void") <ID> "(" [Formals] ")" "{" {VarDecl} {Statement} "}"
-//        		| "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")" "{" {VarDecl} {Statement} "}"
-void MethodDecl(): {}
+// MethodDecl 	-> "public" 
+//                 (
+//                      ( Type | "void") <ID> "(" [Formals] )
+//        	      | ( "static" "void" "main" "(" "String" "[" "]" <ID> )
+//                 ( ")" "{" {VarDecl} {Statement} "}")
+//                 )
+Ast.MethodDecl MethodDecl(): 
 {
-//  "public" (Type() | "void") <ID> "(" [ Formals() ] ")" "{" ( VarDecl() )* ( Statement() )* "}"
-//  |  "public" "static" "void" "main" "(" "String" "[" "]" <ID> ")" "{" ( VarDecl() )* ( Statement() )* "}"
+  Token tkn;
+  Ast.Type t;
+  Ast.Id mid;
+  Ast.Formal f;
+  Ast.FormalList fl = new Ast.FormalList();
+  Ast.VarDecl v;
+  Ast.VarDeclList vl = new Ast.VarDeclList();
+  Ast.Stmt s;
+  Ast.StmtList sl = new Ast.StmtList();
+}
+{
   <PUBLIC> (
     ( 
-      (Type() | <VOID>) <ID> "(" [ Formals() ] ")" ) 
-      | ( <STATIC> <VOID> <MAIN> "(" <STRING> "[" "]" <ID> ")" ) 
+        ( t=Type() | <VOID> ) tkn=<ID> { mid=new Ast.Id(tkn.image); } "(" [ fl=Formals()]  ) 
+      | ( <STATIC> <VOID> <MAIN> "(" <STRING> "[" "]" tkn=<ID> { mid=new Ast.Id(tkn.image); } ) 
     ) 
-  "{" ( LOOKAHEAD(2)VarDecl() )* ( Statement() )* "}"
+    ( ")" "{" (v=VarDecl() {vl.add(v); })* ( s=Statement() {sl.add(s); } )* "}" )
+
+  { return new Ast.MethodDecl(t, mid, fl, vl, sl); }
 }
 
 
 // Formals -> Type <ID> {"," Type <ID>}
 //
-void Formals(): {} 
+//So it should be:
+
+//Formals production
+
+//Ast.FormalList Formals(): {
+//Ast.FormalList fl = new Ast.FormalList();
+//}{
+////actual work
+//return fl;}
+
+//}
+Ast.FormalList Formals(): 
 {
-   Type() <ID> ( "," Type() <ID> )*
+  Ast.FormalList fl = new Ast.FormalList();
+  Ast.Formal f;
+  Token tkn;
+  Ast.Type t;
+} 
+{
+   t=Type() tkn=<ID> {f = new Ast.Formal(t, new Ast.Id(tkn.image)); fl.add(f); } ( "," t=Type() tkn=<ID> {fl.add(new Ast.Formal(t, new Ast.Id(tkn.image))); } )*
+  { return fl; }
 }
 
 // VarDecl -> Type <ID> ["=" InitExpr] ";"
 //
-void VarDecl(): {}
+Ast.VarDecl VarDecl(): 
+{
+  Ast.VarDecl v;
+}
 {
   Type() <ID> [ "=" InitExpr() ] ";"
+  { return v; }
 }
 
 //        
 //  Type 	-> 	("int" | "boolean") ["[" "]"]
 //        		| <ID>
-void Type(): {}
+Ast.Type Type(): 
 {
-  ( <INT> | <BOOLEAN> ) ("[" "]")*
-  | <ID>
+  Ast.Type t;
+  Token tkn;
+  boolean isArray = false;
+}
+{
+  ( <INT> {t=new Ast.IntType(); } | <BOOLEAN> {t=new Ast.BoolType(); } ) ("[" "]" {isArray=true; })*
+  | tkn=<ID> { t=new Ast.ObjType(new Ast.Id(tkn.image)); } // TODO fix t to get a real Type
+
+  { if (isArray)
+      t=new Ast.ArrayType(t);
+    return t; }
 }
 
 
 //        				
 // Statement 	-> 	"{" {Statement} "}"
-//        		| Lvalue ( ("=" InitExpr ) | ( Lvalue "(" [Args] ")" ) ";"
+//        		| Lvalue ( ("=" InitExpr ) | ( "(" [Args] ")" ) ";"
 //        		| "if" "(" Expr ")" Statement ["else" Statement]
 //        		| "while" "(" Expr ")" Statement
 //        		| "System.out.println" "(" [Expr | <STRLITERAL>] ")" ";"
 //        		| "return" [Expr] ";"
-void Statement(): {}
+Ast.Stmt Statement(): 
 {
-	( "{" Statement() "}" )
-	| Lvalue() ( ("=" InitExpr() ) | ( Lvalue() "(" (Args())*  ")" ) ) ";"
-	| ( <IF> "(" Expr() ")" Statement() (LOOKAHEAD(2)<ELSE> Statement())* )
+  Ast.Stmt s;
+}
+{
+	  ( "{" Statement() "}" )
+	| Lvalue() ( ("=" InitExpr() ) | ( "(" (Args())*  ")" ) ) ";"
+	| ( <IF> "(" Expr() ")" Statement() (<ELSE> Statement())? )
 	| ( <WHILE> "(" Expr() ")" Statement() )
-	| ( "System.out.println" "(" ( Expr() | <STRLITERAL> )* ")" ";" )
-	| ( <RETURN> (Expr())* ";" )
+	| ( "System.out.println" "(" ( Expr() | <STRLITERAL> )? ")" ";" )
+	| ( <RETURN> (Expr())? ";" )
+  { return s; }
 }
 
 //        
 // Expr		->	CondExpr ( "=" Expr )?
 //        		| Lvalue ( ("(" [Args] ")") | ("." "length" "(" ")") )?
 //        		| Literal
-void Expr(): {}
+Ast.Exp Expr(): 
+{
+  Ast.Exp e;
+}
 {
 	CondExpr() ( "=" Expr() )?
-	| Lvalue() ( ("(" (LOOKAHEAD(2)Args())* ")") | ("." <LENGTH> "(" ")") )?
+	| Lvalue() ( ("(" (Args())* ")") | ("." <LENGTH> "(" ")") )?
 	| Literal()
+  { return e; }
 }
 
 // CondExpr	->	CondAndExpr ( "||" CondAndExpr )*
-void CondExpr(): {}
+Ast.Exp CondExpr(): 
+{
+  Ast.Exp e;
+}
 {
 	CondAndExpr() ( "||" CondAndExpr() )*
 }
 
 // CondAndExpr	->	EqExpr ( "&&" EqExpr )*
-void CondAndExpr(): {}
+Ast.Exp CondAndExpr(): 
+{
+  Ast.Exp e;
+}
 {
 	EqExpr() ( "&&" EqExpr() )*
 }
 // EqExpr	->	RelExpr ( ( "==" | "!=" ) RelExpr )*
-void EqExpr(): {}
+Ast.Exp EqExpr(): 
+{
+  Ast.Exp e;
+}
 {
   RelExpr() ( ( "==" | "!=" ) RelExpr() )*
 }
 // RelExpr	->	AddExpr ( ( "<" | ">" | "<=" | ">=" ) AddExpr )*
-void RelExpr(): {}
+Ast.Exp RelExpr(): 
+{
+  Ast.Exp e;
+}
 {
   AddExpr() ( ( "<" | ">" | "<=" | ">=" ) AddExpr() )*
 }
 // AddExpr	->	MultExpr ( ( "+" | "-" ) MultExpr )*
-void AddExpr(): {}
+Ast.Exp AddExpr(): 
 {
-  MultExpr() (LOOKAHEAD(2) ( "+" | "-" ) MultExpr() )*
+  Ast.Exp e;
+}
+{
+  MultExpr() ( ( "+" | "-" ) MultExpr() )*
 }
 
 // MultExpr	->	UnaryExpr ( ( "*" | "/" ) UnaryExpr )*
-void MultExpr(): {}
+Ast.Exp MultExpr(): 
 {
-  UnaryExpr() ( ( "*" | "/" ) UnaryExpr() )*
+  Ast.Unop e1;
+  Ast.Unop e2;
+  Ast.BOP op;
+}
+{
+  e1=UnaryExpr() 
+  [ 
+    ( 
+      "*" { op = Ast.BOP.MUL; }
+    | "/" { op = Ast.BOP.DIV; }
+    ) 
+    e2=UnaryExpr()
+  ]
+  { return new Ast.Binop(op, e1, e2); }
 }
 
 // UnaryExpr	->	( "!" | "-" ) UnaryExpr
 //        		| "(" Expr ")"
-void UnaryExpr(): {}
+Ast.Unop UnaryExpr(): 
 {
-  ( "!" | "-" ) UnaryExpr()
+  Ast.Unop e;
+  Ast.UOP op;
+}
+{
+  ( 
+    "!" { op = Ast.UOP.NOT; }
+  | "-" { op = Ast.UOP.NOT; } ) e=UnaryExpr()
   | "(" Expr() ")"
+  { return new Ast.Unop(op, e); }
 }
 
-//        
-// InitExpr	->	"new" PrimitiveType "[" <INTLITERAL> "]"
-//        	|	"new" ID> "(" [Args] ")"
-//        	| Expr
-void InitExpr(): {}
+//  InitExpr	->	"new" ((<BOOLEAN> | <INT>) "[" <INTLITERAL> "]") | (ID> "(" [Args] ")")
+//        		| Expr
+Ast.Exp InitExpr(): 
+// In that production, you're making an array and the Ast.NewArray constructor 
+// requires a type. That's what the ( "int" | "boolean" ) is for.
+
+//Something like: 
+//   ( "int" { Ast.Type = new Ast.IntType();} | "boolean" { Ast.Type = new Ast.BoolType(); } )
+//is what you want.
+
+{
+  Ast.Type t;
+  Ast.NewArray a;
+}
 {
   <NEW>
   (
-    ( PrimitiveType() "[" <INTLITERAL> "]" )
-    | ( <ID> "(" (Args())* ")" )
-  )
+    ( 
+      (   <BOOLEAN> {t = new Ast.BoolType(); }
+        | <INT>{t = new Ast.IntType(); }) 
+          ("[" <INTLITERAL> "]" )
+    | ( <ID> "(" (Args())? ")" )
+    )
   | Expr()
-
-//	"new" PrimitiveType() "[" <INTLITERAL> "]"
-//	| "new" <ID> "(" (Args())* ")"
-//	| Expr()
+  )
 }
 
 //        
 // Args 	-> 	Expr {"," Expr}
 //        
-void Args(): {}
+Ast.ExpList Args(): 
 {
-	Expr() (LOOKAHEAD(2) "," Expr() )*
+  Ast.Exp e;
+  Ast.ExpList el;
+}
+{
+  e=Expr() {el.add(e); } ( "," e=Expr() {el.add(e); } )*
+  { return el; }
 }
 
-// PrimitiveType	-> ("boolean" | "int")
-//        
-void PrimitiveType(): {}
-{
-	(<BOOLEAN> | <INT>)
-}
 // Lvalue 	-> 	<ID> {"." <ID>} ["[" Expr "]"]
-void Lvalue(): {}
+Ast.Exp Lvalue(): 
 {
-	<ID> (LOOKAHEAD(2)"." <ID>)* ("[" Expr() "]")?
+  Ast.Exp e;
 }
+{
+	<ID> ("." <ID>)* ("[" Expr() "]")?
+  { return e; }
+}
+
 //        
 // Literal 	-> 	<INTLITERAL> | "true" | "false"
-void Literal(): {}
+Ast.Exp Literal(): 
 {
-	<INTLITERAL> | <TRUE> | <FALSE>
+  Token tkn;
+  Ast.Exp e;
+}
+{
+      tkn=<INTLITERAL> { e = new Ast.IntVal(Integer.parseInt(tkn.image)); }
+      | tkn=<TRUE> { e = new Ast.True(); }
+      | tkn=<FALSE>{ e = new Ast.False(); }
+  { return e; }
 }
