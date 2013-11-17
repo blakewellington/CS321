@@ -2,15 +2,18 @@
 // Blake Wellington
 // Modified from:
 // Jingke Li, Portland State University
-
 // Starting program for Assignment 3.
 //
+// With great assitance from:
+//    Mark Jones
+//    Michael Hall
+//    Ian Van Houdt
+
 
 // This option can be turned on to help debugging your program.
-// options { DEBUG_PARSER=true; LOOKAHEAD=2; }
+//options { DEBUG_PARSER=true; LOOKAHEAD=2; }
 
 // options { LOOKAHEAD=2; }
-// TODO Put LOOKAHEAD directive within the methods that require it.
 
 PARSER_BEGIN(mjParser)
 import java.io.*;
@@ -229,7 +232,7 @@ Ast.MethodDecl MethodDecl():
     ( ( t=Type() | <VOID> ) tkn=<ID> "(" [ fl=Formals()] ")"
         { mid=new Ast.Id(tkn.image); } )
     | ( <STATIC> <VOID> <MAIN> "(" <STRING> "[" "]" tkn=<ID> ")"
-        { mid=new Ast.Id(tkn.image); } )
+        { mid=new Ast.Id("main"); } )
   ) 
   ( "{" 
        ( LOOKAHEAD(2) v=VarDecl() {vl.add(v); })* 
@@ -278,14 +281,11 @@ Ast.Type Type():
   boolean isArray = false;
 }
 {
-  (   <INT> {t=new Ast.IntType(); } 
-    | <BOOLEAN> {t=new Ast.BoolType(); } )
-  ("[" "]" {isArray=true; })*
-  | tkn=<ID> { t=new Ast.ObjType(new Ast.Id(tkn.image)); } 
-
-  { if (isArray)
-      t=new Ast.ArrayType(t);
-    return t; }
+  (((   <INT> {t=new Ast.IntType(); } 
+      | <BOOLEAN> {t=new Ast.BoolType(); } )
+    ["[" "]" {t=new Ast.ArrayType(t);}])
+  | tkn=<ID> { t=new Ast.ObjType(new Ast.Id(tkn.image)); })
+  { return t; }
 }
 
 // Statement 	-> 	"{" {Statement} "}"
@@ -306,14 +306,14 @@ Ast.Stmt Statement():
 }
 {
   // Block of Statements
-   "{" (s1=Statement() {sl.add(s1); }  )* "}"
-      { stmt=new Ast.Block(sl); }
+   ("{" (s1=Statement() {sl.add(s1); }  )* "}"
+      { stmt=new Ast.Block(sl); })
   // Lvalue Section:
     // Assignment Statement
-        | e1=Lvalue() ( 
+        | (e1=Lvalue() ( 
           ( "=" e2=InitExpr() ";" 
           { stmt=new Ast.Assign(e1, e2); }
-          )
+          ))
   
     // Call Statement
        | ( "(" [ elist=Args() ]  ")" ";"
@@ -330,10 +330,11 @@ Ast.Stmt Statement():
   | ( <WHILE> "(" e1=Expr() ")" s1=Statement() ) 
     { stmt=new Ast.While(e1, s1); }
   // Print Statement
-  | <PRINT> "(" [ e1=Expr() | tkn=<STRLITERAL> {e1=new Ast.StrVal(tkn.image);}] ")" ";" 
+  | <PRINT> "(" [ e1=Expr()
+                | tkn=<STRLITERAL> {e1=new Ast.StrVal(tkn.image.substring(1,tkn.image.length()-1));}] ")" ";" 
     { stmt=new Ast.Print(e1); }
   // Return Statement
-  | ( <RETURN> (e1=Expr())? ";" )
+  | ( <RETURN> [e1=Expr()] ";" )
     { stmt=new Ast.Return(e1); }
   )
   { return stmt; }
@@ -390,7 +391,7 @@ Ast.Exp RelExpr():
   Ast.BOP op = null;
 }
 {
-  e1=AddExpr() ( ( "<"   { op = Ast.BOP.LE; }
+  e1=AddExpr() ( ( "<"   { op = Ast.BOP.LT; }
                  | ">"   { op = Ast.BOP.GT; }
                  | "<="  { op = Ast.BOP.LE; }
                  | ">="  { op = Ast.BOP.GE; }
@@ -441,11 +442,11 @@ Ast.Exp UnaryExpr():
   Ast.UOP op = null;
 }
 {
-  ( 
+  (( 
    ( "!" { op = Ast.UOP.NOT; }
    | "-" { op = Ast.UOP.NOT; } )
    e=UnaryExpr() { e = new Ast.Unop(op, e); })
-  | e=Atom() 
+  | e=Atom() )
   { return e; }
 }
 
@@ -468,23 +469,27 @@ Ast.Exp Atom():
 }
 {
   // Create a call expression
-  e=Lvalue() ( ( "(" [elist=Args()] ")" ) | ("." <LENGTH> "(" ")" ) )?
+  (e=Lvalue()
+      [ ( "(" [elist=Args()] ")" 
          { if (e instanceof Ast.Id)
            { e = new Ast.Call((Ast.Id)null, (Ast.Id)e, elist); }
            else if (e instanceof Ast.Field)
-           { e = new Ast.Call(((Ast.Field)e1).obj, ((Ast.Field)e1).var, elist); }
+           { e = new Ast.Call(((Ast.Field)e).obj, ((Ast.Field)e).var, elist); }
          }
-
+        )
+      | ("." <LENGTH> "(" ")" 
+         { e = new Ast.Call(e, new Ast.Id("length"), elist); }
+        ) ]
 
   // Create a literal expression
   | e=Literal()
   // Create a parenthesized expression
-  | "(" e=Expr() ")"
+  | "(" e=Expr() ")")
 
   { return e; }
 }
 
-//  InitExpr	->	"new" (<BOOLEAN> | <INT>) "[" <INTLITERAL> "]" 
+//  InitExpr	->	"new" ((<BOOLEAN> | <INT>) "[" <INTLITERAL> "]") 
 //                      | (<ID> "(" [Args] ")")
 //        		| Expr
 Ast.Exp InitExpr(): 
@@ -496,25 +501,25 @@ Ast.Exp InitExpr():
   Ast.ExpList el = new Ast.ExpList();
 }
 {
-  <NEW>
-  
-    (
-      (   
-          <BOOLEAN> {t = new Ast.BoolType(); }
-        | <INT>     {t = new Ast.IntType(); }
-      ) 
-      ("[" tkn=<INTLITERAL> "]" 
-      {
-        sz = Integer.parseInt(tkn.image); 
-        e=new Ast.NewArray(t, sz); 
-        t=new Ast.IntType();
-      } )
-    | ( tkn=<ID> "(" [el=Args()] ")" 
-        { e=new Ast.NewObj(new Ast.Id(tkn.image), el); 
-        } )
-    )
-  | e=Expr()
-  
+  ((<NEW>
+   (
+     ( 
+       (   
+           <BOOLEAN> {t = new Ast.BoolType(); }
+         | <INT>     {t = new Ast.IntType(); }
+       ) 
+       ("[" tkn=<INTLITERAL> "]" 
+       {
+         sz = Integer.parseInt(tkn.image); 
+         e=new Ast.NewArray(t, sz); 
+         t=new Ast.IntType();
+       } )
+     | ( tkn=<ID> "(" [ el=Args() ] ")" 
+         { e=new Ast.NewObj(new Ast.Id(tkn.image), el); 
+         } )
+     )))
+   |  e=Expr()
+  )
   { return e; }
 }
 
@@ -557,8 +562,8 @@ Ast.Exp Literal():
   Ast.Exp e = null;
 }
 {
-      tkn=<INTLITERAL> { e = new Ast.IntVal(Integer.parseInt(tkn.image)); }
+      (tkn=<INTLITERAL> { e = new Ast.IntVal(Integer.parseInt(tkn.image)); }
       | tkn=<TRUE> { e = new Ast.True(); }
-      | tkn=<FALSE>{ e = new Ast.False(); }
+      | tkn=<FALSE>{ e = new Ast.False(); })
   { return e; }
 }
