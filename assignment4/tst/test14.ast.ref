@@ -1,0 +1,10 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id A) ) (Id a) (NewObj (Id A) ()) 
+   Print (Call (Id a) (Id go) ()) 
+ ClassDecl (Id A) () 
+  MethodDecl (IntType) (Id back) ((Formal (IntType) (Id a) ) )
+   Return (Id a) 
+  MethodDecl (IntType) (Id go) ()
+   Return (Call () (Id back) ((IntVal 2) )) 

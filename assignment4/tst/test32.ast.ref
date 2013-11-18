@@ -1,0 +1,10 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (IntType) (Id i) (IntVal 0) 
+   If (Binop > (IntVal 2) (IntVal 1) ) 
+    If (Binop > (IntVal 1) (IntVal 0) ) 
+     Assign (Id i) (IntVal 1) 
+    Else
+     Assign (Id i) (IntVal 2) 
+   Print (Id i) 

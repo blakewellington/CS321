@@ -1,0 +1,7 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   Print (StrVal "123") 
+   Print (IntVal 123) 
+   Print () 
+   Print (True) 

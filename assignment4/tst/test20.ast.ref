@@ -1,0 +1,20 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id A) ) (Id x) () 
+   Assign (Id x) (NewObj (Id A) ()) 
+   Print (Call (Id x) (Id go) ((IntVal 5) )) 
+ ClassDecl (Id A) () 
+  MethodDecl (IntType) (Id go) ((Formal (IntType) (Id n) ) )
+   VarDecl (IntType) (Id i) () 
+   Assign (Id i) (IntVal 0) 
+   If (Binop > (Id n) (IntVal 0) ) 
+    {
+     Print (Id n) 
+     Assign (Id i) (Call () (Id back) ((Binop - (Id n) (IntVal 1) ) )) 
+    }
+   Return (Id i) 
+  MethodDecl (IntType) (Id back) ((Formal (IntType) (Id n) ) )
+   VarDecl (IntType) (Id i) () 
+   Assign (Id i) (Call () (Id go) ((Id n) )) 
+   Return (IntVal 0) 
