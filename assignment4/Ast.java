@@ -25,6 +25,15 @@ class Ast {
 	System.out.print(" "); 
       System.out.print(s); 
     }
+    public static void DUMP(Boolean bang, int tab, String s) {
+      if (bang) {
+	System.out.print("!");
+	tab = tab-1;
+      }
+      for (int i=0; i<tab; i++)
+	System.out.print(" "); 
+      System.out.print(s); 
+    }
 
     public static void DUMP(NodeList l) { 
       if (l!=null) l.dump(); 
@@ -35,13 +44,8 @@ class Ast {
     }
 
     public static void DUMP(Stmt s) { 
-      if (s!=null) {
-	if (!s.reachable) {
-	  DUMP("!");
-	  tab--;
-	}
+      if (s!=null) 
 	s.dump(); 
-      }
     }
 
     public static void DUMP(Exp e) { 
@@ -228,9 +232,9 @@ class Ast {
 
     public void dump() { 
       if (sl!=null) {
-	DUMP(Ast.tab, "{\n"); 
+	DUMP(!reachable,Ast.tab, "{\n"); 
         Ast.tab++; sl.dump(); Ast.tab--;
-	DUMP(Ast.tab, "}\n"); 
+	DUMP(!reachable,Ast.tab, "}\n"); 
       }
     }
   }
@@ -242,7 +246,7 @@ class Ast {
     Assign(Exp e1, Exp e2) { lhs=e1; rhs=e2; }
 
     public void dump() { 
-      DUMP(Ast.tab, "Assign "); DUMP(lhs); DUMP(rhs); DUMP("\n"); 
+      DUMP(!reachable,Ast.tab, "Assign "); DUMP(lhs); DUMP(rhs); DUMP("\n"); 
     }
   }
 
@@ -254,7 +258,7 @@ class Ast {
     CallStmt(Exp e, Id mi, ExpList el) { obj=e; mid=mi; args=el; }
 
     public void dump() { 
-      DUMP(Ast.tab, "CallStmt "); DUMP(obj); DUMP(mid); 
+      DUMP(!reachable,Ast.tab, "CallStmt "); DUMP(obj); DUMP(mid); 
       args.dump(); DUMP("\n"); 
     }
   }
@@ -267,10 +271,10 @@ class Ast {
     If(Exp ae, Stmt as1, Stmt as2) { e=ae; s1=as1; s2=as2; }
 
     public void dump() { 
-      DUMP(Ast.tab, "If "); DUMP(e); DUMP("\n"); 
+      DUMP(!reachable,Ast.tab, "If "); DUMP(e); DUMP("\n"); 
       Ast.tab++; DUMP(s1); Ast.tab--;
       if (s2!=null) {
-	DUMP(Ast.tab, "Else\n");
+	DUMP(!reachable,Ast.tab, "Else\n");
 	Ast.tab++; DUMP(s2); Ast.tab--;
       }
     }
@@ -283,7 +287,7 @@ class Ast {
     While(Exp ae, Stmt as) { e=ae; s=as; }
 
     public void dump() { 
-      DUMP(Ast.tab, "While "); DUMP(e); DUMP("\n");
+      DUMP(!reachable,Ast.tab, "While "); DUMP(e); DUMP("\n");
       Ast.tab++; DUMP(s); Ast.tab--;
     }
   }   
@@ -294,7 +298,7 @@ class Ast {
     Print(Exp ae) { e=ae; }
 
     public void dump() { 
-      DUMP(Ast.tab, "Print "); DUMP(e); DUMP("\n"); 
+      DUMP(!reachable,Ast.tab, "Print "); DUMP(e); DUMP("\n"); 
     }
   }
 
@@ -304,7 +308,7 @@ class Ast {
     Return(Exp ae) { e=ae; }
 
     public void dump() { 
-      DUMP(Ast.tab, "Return "); DUMP(e); DUMP("\n"); 
+      DUMP(!reachable,Ast.tab, "Return "); DUMP(e); DUMP("\n"); 
     }
   }
 
