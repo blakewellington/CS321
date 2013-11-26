@@ -117,7 +117,6 @@ class Ast {
     // Set the reachability of each Stmt in StmtList
     // pass in the hasReturned boolean each time.
     boolean setReachability(boolean hasReturned) {
-      System.out.println("in a StmtList Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
       boolean stmtListHasReturned = false;
       for (int i=0; i<size(); i++)
         stmtListHasReturned = elementAt(i).setReachability(stmtListHasReturned);
@@ -274,7 +273,6 @@ class Ast {
     }
 
     public boolean setReachability(boolean hasReturned) {
-      System.out.println("in a block: " + (hasReturned ? "TRUE" : "FALSE"));
       return sl.setReachability(hasReturned);
     }
 
@@ -293,7 +291,6 @@ class Ast {
     public boolean setReachability(boolean hasReturned)
     {
       reachable = !hasReturned;
-      System.out.println("in an Assign: " + (hasReturned ? "TRUE" : "FALSE"));
       return hasReturned;
     }
   }
@@ -312,7 +309,6 @@ class Ast {
 
     public boolean setReachability(boolean hasReturned)
     {
-      System.out.println("in a CallStmt: " + (hasReturned ? "TRUE" : "FALSE"));
         reachable = !hasReturned;
         return hasReturned;
     }
@@ -335,7 +331,6 @@ class Ast {
     }
 
     public boolean setReachability(boolean hasReturned) {
-      System.out.println("in an If Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
       reachable = !hasReturned;
       hasReturned = s1.setReachability(hasReturned);
       if (s2 != null)
@@ -357,7 +352,6 @@ class Ast {
     }
 
     public boolean setReachability(boolean hasReturned) {
-      System.out.println("in a While Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
       reachable = !hasReturned;
       return s.setReachability(hasReturned);
     }
@@ -374,7 +368,6 @@ class Ast {
     }
     public boolean setReachability(boolean hasReturned)
     {
-      System.out.println("in a Print Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
         reachable = !hasReturned;
         return hasReturned;
     }
@@ -391,7 +384,6 @@ class Ast {
 
     public boolean setReachability(boolean hasReturned)
     {
-      System.out.println("in a Return Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
         reachable = !hasReturned;
         return true;
     }
