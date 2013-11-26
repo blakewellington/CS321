@@ -78,11 +78,20 @@ class Ast {
   public static class ClassDeclList extends NodeList {
     ClassDeclList() { super(); }
     ClassDecl elementAt(int i) { return (ClassDecl)super.elementAt(i); }
+    void setReachability() {
+      for (int i=0; i<size(); i++)
+        elementAt(i).setReachability();
+    }
   }   
 
   public static class MethodDeclList extends NodeList {
     MethodDeclList() { super(); }
     MethodDecl elementAt(int i) { return (MethodDecl)super.elementAt(i); }
+    void setReachability() {
+      for (int i=0; i<size(); i++)
+        elementAt(i).setReachability();
+    }
+
   }   
 
   public static class VarDeclList extends NodeList {
@@ -102,6 +111,17 @@ class Ast {
     public void dump() {
       for (int i=0; i<size(); i++) 
         DUMP(elementAt(i));
+    }
+
+    // StmtList contains a list of Stmt
+    // Set the reachability of each Stmt in StmtList
+    // pass in the hasReturned boolean each time.
+    boolean setReachability(boolean hasReturned) {
+      System.out.println("in a StmtList Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
+      boolean stmtListHasReturned = false;
+      for (int i=0; i<size(); i++)
+        stmtListHasReturned = elementAt(i).setReachability(stmtListHasReturned);
+      return stmtListHasReturned;
     }
   }
 
@@ -124,7 +144,9 @@ class Ast {
     public void dump(int i) {}
 
     public void setReachability() {
-      // fill in here!
+      // Programs contain a ClassDeclList
+      // Set the reachability of my ClassDeclList
+      cl.setReachability();
     }
   }   
 
@@ -144,6 +166,11 @@ class Ast {
       DUMP(" ClassDecl "); DUMP(cid); DUMP(pid); DUMP("\n"); 
       Ast.tab = 2; DUMP(vl); DUMP(ml); 
     }
+
+    public void setReachability() {
+      ml.setReachability();
+    }
+
   }
 
   public static class MethodDecl extends Node {
@@ -152,6 +179,7 @@ class Ast {
     FormalList fl;	// formal parameters
     VarDeclList vl;	// local variables
     StmtList sl;	// method body
+    boolean hasReturned = false; // This method has returned (used for testing reachability)
 
     MethodDecl(Type at, Id i, FormalList afl, VarDeclList avl, StmtList asl) {
       t=at; mid=i; fl=afl; vl=avl; sl=asl;
@@ -160,6 +188,12 @@ class Ast {
     public void dump() { 
       DUMP("  MethodDecl "); DUMP(t); DUMP(mid); DUMP(fl); DUMP("\n");
       Ast.tab = 3; DUMP(vl); DUMP(sl);
+    }
+    public void setReachability() {
+      // MethodDecl contains a StmtList
+      // Set the reachability of my StmtList
+      // pass in the initial value of hasReturned: false
+      sl.setReachability(hasReturned);
     }
 
   }
@@ -223,6 +257,7 @@ class Ast {
 
   public static abstract class Stmt extends Node {
     public boolean reachable = true; // initial flag value choice is arbitrary
+    public abstract boolean setReachability(boolean hasReturned) ;
   }
 
   public static class Block extends Stmt {
@@ -237,6 +272,12 @@ class Ast {
 	DUMP(!reachable,Ast.tab, "}\n"); 
       }
     }
+
+    public boolean setReachability(boolean hasReturned) {
+      System.out.println("in a block: " + (hasReturned ? "TRUE" : "FALSE"));
+      return sl.setReachability(hasReturned);
+    }
+
   }
 
   public static class Assign extends Stmt {
@@ -247,6 +288,13 @@ class Ast {
 
     public void dump() { 
       DUMP(!reachable,Ast.tab, "Assign "); DUMP(lhs); DUMP(rhs); DUMP("\n"); 
+    }
+
+    public boolean setReachability(boolean hasReturned)
+    {
+      reachable = !hasReturned;
+      System.out.println("in an Assign: " + (hasReturned ? "TRUE" : "FALSE"));
+      return hasReturned;
     }
   }
 
@@ -260,6 +308,13 @@ class Ast {
     public void dump() { 
       DUMP(!reachable,Ast.tab, "CallStmt "); DUMP(obj); DUMP(mid); 
       args.dump(); DUMP("\n"); 
+    }
+
+    public boolean setReachability(boolean hasReturned)
+    {
+      System.out.println("in a CallStmt: " + (hasReturned ? "TRUE" : "FALSE"));
+        reachable = !hasReturned;
+        return hasReturned;
     }
   }
 
@@ -278,6 +333,16 @@ class Ast {
 	Ast.tab++; DUMP(s2); Ast.tab--;
       }
     }
+
+    public boolean setReachability(boolean hasReturned) {
+      System.out.println("in an If Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
+      reachable = !hasReturned;
+      hasReturned = s1.setReachability(hasReturned);
+      if (s2 != null)
+        hasReturned = s2.setReachability(hasReturned);
+      return hasReturned;
+    }
+
   }
 
   public static class While extends Stmt {
@@ -290,6 +355,13 @@ class Ast {
       DUMP(!reachable,Ast.tab, "While "); DUMP(e); DUMP("\n");
       Ast.tab++; DUMP(s); Ast.tab--;
     }
+
+    public boolean setReachability(boolean hasReturned) {
+      System.out.println("in a While Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
+      reachable = !hasReturned;
+      return s.setReachability(hasReturned);
+    }
+
   }   
 
   public static class Print extends Stmt {
@@ -300,6 +372,12 @@ class Ast {
     public void dump() { 
       DUMP(!reachable,Ast.tab, "Print "); DUMP(e); DUMP("\n"); 
     }
+    public boolean setReachability(boolean hasReturned)
+    {
+      System.out.println("in a Print Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
+        reachable = !hasReturned;
+        return hasReturned;
+    }
   }
 
   public static class Return extends Stmt {
@@ -309,6 +387,13 @@ class Ast {
 
     public void dump() { 
       DUMP(!reachable,Ast.tab, "Return "); DUMP(e); DUMP("\n"); 
+    }
+
+    public boolean setReachability(boolean hasReturned)
+    {
+      System.out.println("in a Return Stmt: " + (hasReturned ? "TRUE" : "FALSE"));
+        reachable = !hasReturned;
+        return true;
     }
   }
 
