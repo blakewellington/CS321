@@ -166,6 +166,8 @@ class Ast {
       Ast.tab = 2; DUMP(vl); DUMP(ml); 
     }
 
+
+    // Call setReachability on this Class' MethodDeclList
     public void setReachability() {
       ml.setReachability();
     }
@@ -178,7 +180,11 @@ class Ast {
     FormalList fl;	// formal parameters
     VarDeclList vl;	// local variables
     StmtList sl;	// method body
-    boolean hasReturned = false; // This method has returned (used for testing reachability)
+    // hasReturned indicates that this method has returned
+    // (used for testing reachability)
+    // It is initialized at the MethodDecl level as false
+    // because when a method is instantiated, it has not yet returned.
+    boolean hasReturned = false; 
 
     MethodDecl(Type at, Id i, FormalList afl, VarDeclList avl, StmtList asl) {
       t=at; mid=i; fl=afl; vl=avl; sl=asl;
@@ -256,6 +262,14 @@ class Ast {
 
   public static abstract class Stmt extends Node {
     public boolean reachable = true; // initial flag value choice is arbitrary
+
+    // Set up an abstract method for setReachability()
+    // It is passed a boolean, which indicated whether or not the method
+    // has returned yet. It returns the same boolean, which is then passed
+    // down the chain of statements.  Once the statement list contains
+    // a Return statement, the boolean value is set to true.
+    // Once true, all subsequent calls to a statement's setReachability()
+    // method will set the reachable flag (boolean) to false.
     public abstract boolean setReachability(boolean hasReturned) ;
   }
 
@@ -272,6 +286,7 @@ class Ast {
       }
     }
 
+    // A Block contains a Statement List. Call setReachability on it.
     public boolean setReachability(boolean hasReturned) {
       return sl.setReachability(hasReturned);
     }
@@ -307,6 +322,9 @@ class Ast {
       args.dump(); DUMP("\n"); 
     }
 
+    // Call statements are handled in the standard manner:
+    // Just set reachable to true or false depending on what is 
+    // passed in (hasReturned).
     public boolean setReachability(boolean hasReturned)
     {
         reachable = !hasReturned;
@@ -330,6 +348,8 @@ class Ast {
       }
     }
 
+    // An If statement can branch. Call setReachability on each
+    // branch.
     public boolean setReachability(boolean hasReturned) {
       reachable = !hasReturned;
       hasReturned = s1.setReachability(hasReturned);
@@ -351,6 +371,8 @@ class Ast {
       Ast.tab++; DUMP(s); Ast.tab--;
     }
 
+    // A While statement contains a statement. Call setReachability()
+    // on its statement and return the value back up the chain.
     public boolean setReachability(boolean hasReturned) {
       reachable = !hasReturned;
       return s.setReachability(hasReturned);
@@ -366,6 +388,9 @@ class Ast {
     public void dump() { 
       DUMP(!reachable,Ast.tab, "Print "); DUMP(e); DUMP("\n"); 
     }
+    // Print statements are handled in the standard manner:
+    // Just set reachable to true or false depending on what is 
+    // passed in (hasReturned).
     public boolean setReachability(boolean hasReturned)
     {
         reachable = !hasReturned;
@@ -382,6 +407,11 @@ class Ast {
       DUMP(!reachable,Ast.tab, "Return "); DUMP(e); DUMP("\n"); 
     }
 
+    // A Return statement is where the action happens in
+    // the setReachability methods. No matter what is passed in
+    // it ALWAYS returns true. This is because whenever Return
+    // is called, it means that the method is returning and all
+    // subsequent statements in the method will be unreachable.
     public boolean setReachability(boolean hasReturned)
     {
         reachable = !hasReturned;
@@ -391,7 +421,9 @@ class Ast {
 
   // Expressions --------------------------------------------------------
 
-  public static abstract class Exp extends Node {}
+  public static abstract class Exp extends Node {
+    public abstract Object cval();
+  }
 
   public static enum BOP {
     ADD("+"), SUB("-"), MUL("*"), DIV("/"), AND("&&"), OR("||"),
@@ -423,6 +455,64 @@ class Ast {
     public void dump() { 
       DUMP("(Binop " + op.toString() + " "); DUMP(e1); DUMP(e2); DUMP(") ");
     }
+
+    public Object cval() {
+      Object returnVal = null;
+      Object expVal1 = e1.cval();
+      Object expVal2 = e1.cval();
+      if (expVal1 == null || expVal2 == null)
+        return null;
+      else if (expVal1 instanceof Integer && expVal2 instanceof Integer)
+      {
+        int e1Int = (Integer)expVal1;
+        int e2Int = (Integer)expVal2;
+        // INTEGER EXPRESSIONS
+        if (op == BOP.ADD) {
+          returnVal = (e1Int + e2Int);
+        }
+        else if (op == BOP.SUB) {
+          returnVal = (e1Int - e2Int);
+        }
+        else if (op == BOP.MUL) {
+          returnVal = (e1Int * e2Int);
+        }
+        else if (op == BOP.DIV) {
+          returnVal = (e1Int / e2Int);
+        }
+        else if (op == BOP.EQ) {
+          returnVal = (e1Int == e2Int);
+        }
+        else if (op == BOP.NE) {
+          returnVal = (e1Int != e2Int);
+        }
+        else if (op == BOP.LT) {
+          returnVal = (e1Int < e2Int);
+        }
+        else if (op == BOP.LE) {
+          returnVal = (e1Int <= e2Int);
+        }
+        else if (op == BOP.GT) {
+          returnVal = (e1Int > e2Int);
+        }
+        else if (op == BOP.GE) {
+          returnVal = (e1Int >= e2Int);
+        }
+      }
+
+      else if (expVal1 instanceof Boolean && expVal2 instanceof Boolean)
+      {
+        // BOOLEAN EXPRESSIONS
+        boolean e1Bool = (Boolean)expVal1;
+        boolean e2Bool = (Boolean)expVal2;
+        if (op == BOP.AND) {
+          returnVal = (e1Bool && e2Bool);
+        }
+        else if (op == BOP.OR) {
+          returnVal = (e1Bool || e2Bool);
+        }
+      }
+      return returnVal;
+    }
   }
 
   public static class Unop extends Exp {
@@ -434,6 +524,19 @@ class Ast {
     public void dump() { 
       DUMP("(Unop " + op.toString() + " "); DUMP(e); DUMP(") ");
     }
+
+    public Object cval() {
+      Object returnVal = null;
+      Object expVal = e.cval();
+      if (expVal == null)
+        return null;
+      if (expVal instanceof Integer && op == UOP.NEG)
+        returnVal = -(Integer)expVal;
+      else if (expVal instanceof Boolean && op == UOP.NOT)
+        returnVal = !(Boolean)expVal;
+      return returnVal;
+    }
+
   }
 
   public static class Call extends Exp {
@@ -447,6 +550,8 @@ class Ast {
       DUMP("(Call "); DUMP(obj); DUMP(mid); 
       DUMP(args); DUMP(") ");
     }
+
+    public Object cval() { return null; }
   }
 
   public static class NewArray extends Exp {
@@ -458,6 +563,8 @@ class Ast {
     public void dump() { 
       DUMP("(NewArray "); DUMP(et); DUMP(sz); DUMP(") ");
     }
+
+    public Object cval() { return null; }
   }
 
   public static class ArrayElm extends Exp {
@@ -469,6 +576,8 @@ class Ast {
     public void dump() { 
       DUMP("(ArrayElm "); DUMP(ar); DUMP(idx); DUMP(") ");
     }
+
+    public Object cval() { return null; }
   }
 
   public static class NewObj extends Exp {
@@ -481,6 +590,8 @@ class Ast {
       DUMP("(NewObj "); DUMP(cid);
       DUMP(args); DUMP(") ");
     }
+
+    public Object cval() { return null; }
   }
 
   public static class Field extends Exp {
@@ -491,6 +602,8 @@ class Ast {
     public void dump() { 
       DUMP("(Field "); DUMP(obj); DUMP(var); DUMP(") ");
     }
+
+    public Object cval() { return null; }
   }
 
   public static class Id extends Exp {
@@ -499,6 +612,8 @@ class Ast {
     Id(String as) { s=as; }
 
     public void dump() { DUMP("(Id " + s + ") "); }
+
+    public Object cval() { return null; }
   }
 
   public static class IntVal extends Exp {
@@ -508,6 +623,8 @@ class Ast {
 
     //    public String toString() { return "int"; }
     public void dump() { DUMP("(IntVal " + i + ") "); }
+
+    public Object cval() { return i; }
   }
 
   public static class StrVal extends Exp {
@@ -515,13 +632,19 @@ class Ast {
 
     StrVal(String as) { s=as; }
     public void dump() { DUMP("(StrVal \"" + s + "\") "); }
+
+    public Object cval() { return null; }
   }
 
   public static class True extends Exp {
     public void dump() { DUMP("(True) "); }
+
+    public Object cval() { return true; }
   }
 
   public static class False extends Exp {
     public void dump() { DUMP("(False) "); }
+
+    public Object cval() { return false; }
   }
 }
