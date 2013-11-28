@@ -1,0 +1,29 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (IntType) (Id x) (IntVal 5) 
+   If (Binop == (IntVal 5) (IntVal 5) ) 
+    Print (StrVal "True") 
+   Else
+    Print (StrVal "unreachable")
+   If (Binop <= (IntVal 5) (IntVal 5) ) 
+    Print (StrVal "True") 
+   Else
+    Print (StrVal "unreachable")
+   If (Binop >= (IntVal 5) (IntVal 5) ) 
+    Print (StrVal "True") 
+   Else
+    Print (StrVal "unreachable")
+   If (Binop != (IntVal 5) (IntVal 5) ) 
+    Print (StrVal "unreachable")
+   Else
+     Print (StrVal "True") 
+   If (Binop < (IntVal 5) (IntVal 5) ) 
+    Print (StrVal "unreachable")
+   Else
+     Print (StrVal "True") 
+   If (Binop > (IntVal 5) (IntVal 5) ) 
+    Print (StrVal "unreachable")
+   Else
+     Print (StrVal "True") 
+ Return (Id x)

@@ -115,8 +115,8 @@ class Ast {
 
     // StmtList contains a list of Stmt
     // Set the reachability of each Stmt in StmtList
-    // pass in the hasReturned boolean each time.
-    boolean setReachability(boolean hasReturned) {
+    // pass in the notReachable boolean each time.
+    boolean setReachability(boolean notReachable) {
       boolean stmtListHasReturned = false;
       for (int i=0; i<size(); i++)
         stmtListHasReturned = elementAt(i).setReachability(stmtListHasReturned);
@@ -180,11 +180,11 @@ class Ast {
     FormalList fl;	// formal parameters
     VarDeclList vl;	// local variables
     StmtList sl;	// method body
-    // hasReturned indicates that this method has returned
+    // notReachable indicates that this method has returned
     // (used for testing reachability)
     // It is initialized at the MethodDecl level as false
     // because when a method is instantiated, it has not yet returned.
-    boolean hasReturned = false; 
+    boolean notReachable = false; 
 
     MethodDecl(Type at, Id i, FormalList afl, VarDeclList avl, StmtList asl) {
       t=at; mid=i; fl=afl; vl=avl; sl=asl;
@@ -197,8 +197,8 @@ class Ast {
     public void setReachability() {
       // MethodDecl contains a StmtList
       // Set the reachability of my StmtList
-      // pass in the initial value of hasReturned: false
-      sl.setReachability(hasReturned);
+      // pass in the initial value of notReachable: false
+      sl.setReachability(notReachable);
     }
 
   }
@@ -270,7 +270,7 @@ class Ast {
     // a Return statement, the boolean value is set to true.
     // Once true, all subsequent calls to a statement's setReachability()
     // method will set the reachable flag (boolean) to false.
-    public abstract boolean setReachability(boolean hasReturned) ;
+    public abstract boolean setReachability(boolean notReachable) ;
   }
 
   public static class Block extends Stmt {
@@ -287,8 +287,8 @@ class Ast {
     }
 
     // A Block contains a Statement List. Call setReachability on it.
-    public boolean setReachability(boolean hasReturned) {
-      return sl.setReachability(hasReturned);
+    public boolean setReachability(boolean notReachable) {
+      return sl.setReachability(notReachable);
     }
 
   }
@@ -303,10 +303,10 @@ class Ast {
       DUMP(!reachable,Ast.tab, "Assign "); DUMP(lhs); DUMP(rhs); DUMP("\n"); 
     }
 
-    public boolean setReachability(boolean hasReturned)
+    public boolean setReachability(boolean notReachable)
     {
-      reachable = !hasReturned;
-      return hasReturned;
+      reachable = !notReachable;
+      return notReachable;
     }
   }
 
@@ -324,11 +324,11 @@ class Ast {
 
     // Call statements are handled in the standard manner:
     // Just set reachable to true or false depending on what is 
-    // passed in (hasReturned).
-    public boolean setReachability(boolean hasReturned)
+    // passed in (notReachable).
+    public boolean setReachability(boolean notReachable)
     {
-        reachable = !hasReturned;
-        return hasReturned;
+        reachable = !notReachable;
+        return notReachable;
     }
   }
 
@@ -350,13 +350,34 @@ class Ast {
 
     // An If statement can branch. Call setReachability on each
     // branch.
-    public boolean setReachability(boolean hasReturned) {
-      reachable = !hasReturned;
-      hasReturned = s1.setReachability(hasReturned);
+    public boolean setReachability(boolean notReachable) {
+      boolean eBool;
+      reachable = reachable && !notReachable;
+      
+      // Evaluate the expression for constant:
+      // Instantiate eVal as the value of e.cval() so that we
+      // don't have to traverse the tree every time we want to 
+      // evaluate it.
+      Object eVal = e.cval();
+      
+      // If the expression is a constant boolean, then evaluate the 
+      // boolean for true/false.  If it is false, then s1 is unreachable.
+      // If it is true, then s2 is unreachable.
+      if (eVal instanceof Boolean) {
+        eBool = (Boolean)eVal;
+    	if (s1 != null)
+          s1.setReachability(eBool);
+    	if (s2 != null)
+    	  s2.setReachability(!eBool);
+      }
+    
+      // Now deal with Return statements causing unreachability.
+      notReachable = s1.setReachability(notReachable);
       if (s2 != null)
-        hasReturned = s2.setReachability(hasReturned);
-      return hasReturned;
+        notReachable = s2.setReachability(notReachable);
+      return notReachable;
     }
+
 
   }
 
@@ -373,10 +394,29 @@ class Ast {
 
     // A While statement contains a statement. Call setReachability()
     // on its statement and return the value back up the chain.
-    public boolean setReachability(boolean hasReturned) {
-      reachable = !hasReturned;
-      return s.setReachability(hasReturned);
+    public boolean setReachability(boolean notReachable) {
+
+      boolean eBool;
+
+      // Evaluate the expression for constant:
+      // Instantiate eVal as the value of e.cval() so that we
+      // don't have to traverse the tree every time we want to 
+      // evaluate it.
+      Object eVal = e.cval();
+      
+      // Set the reachable property of this statement
+      reachable = reachable && !notReachable;
+
+      // If the expression is a constant boolean, then evaluate the 
+      // boolean for true/false.  If it is false, then s is unreachable.
+      if (eVal instanceof Boolean) {
+        eBool = (Boolean)eVal;
+    	if (s != null)
+          s.setReachability(eBool);
+	  }
+      return s.setReachability(notReachable);
     }
+
 
   }   
 
@@ -390,11 +430,11 @@ class Ast {
     }
     // Print statements are handled in the standard manner:
     // Just set reachable to true or false depending on what is 
-    // passed in (hasReturned).
-    public boolean setReachability(boolean hasReturned)
+    // passed in (notReachable).
+    public boolean setReachability(boolean notReachable)
     {
-        reachable = !hasReturned;
-        return hasReturned;
+        reachable = !notReachable;
+        return notReachable;
     }
   }
 
@@ -412,9 +452,9 @@ class Ast {
     // it ALWAYS returns true. This is because whenever Return
     // is called, it means that the method is returning and all
     // subsequent statements in the method will be unreachable.
-    public boolean setReachability(boolean hasReturned)
+    public boolean setReachability(boolean notReachable)
     {
-        reachable = !hasReturned;
+        reachable = !notReachable;
         return true;
     }
   }
