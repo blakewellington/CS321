@@ -305,7 +305,8 @@ class Ast {
 
     public boolean setReachability(boolean notReachable)
     {
-      reachable = !notReachable;
+      // Set the reachable property of this statement
+      reachable = reachable && !notReachable;
       return notReachable;
     }
   }
@@ -327,8 +328,9 @@ class Ast {
     // passed in (notReachable).
     public boolean setReachability(boolean notReachable)
     {
-        reachable = !notReachable;
-        return notReachable;
+      // Set the reachable property of this statement
+      reachable = reachable && !notReachable;
+      return notReachable;
     }
   }
 
@@ -366,9 +368,9 @@ class Ast {
       if (eVal instanceof Boolean) {
         eBool = (Boolean)eVal;
     	if (s1 != null)
-          s1.setReachability(eBool);
+          s1.setReachability(!eBool);
     	if (s2 != null)
-    	  s2.setReachability(!eBool);
+    	  s2.setReachability(eBool);
       }
     
       // Now deal with Return statements causing unreachability.
@@ -412,7 +414,7 @@ class Ast {
       if (eVal instanceof Boolean) {
         eBool = (Boolean)eVal;
     	if (s != null)
-          s.setReachability(eBool);
+          s.setReachability(!eBool);
 	  }
       return s.setReachability(notReachable);
     }
@@ -433,8 +435,9 @@ class Ast {
     // passed in (notReachable).
     public boolean setReachability(boolean notReachable)
     {
-        reachable = !notReachable;
-        return notReachable;
+      // Set the reachable property of this statement
+      reachable = reachable && !notReachable;
+      return notReachable;
     }
   }
 
@@ -454,8 +457,9 @@ class Ast {
     // subsequent statements in the method will be unreachable.
     public boolean setReachability(boolean notReachable)
     {
-        reachable = !notReachable;
-        return true;
+      // Set the reachable property of this statement
+      reachable = reachable && !notReachable;
+      return true;
     }
   }
 
@@ -499,7 +503,7 @@ class Ast {
     public Object cval() {
       Object returnVal = null;
       Object expVal1 = e1.cval();
-      Object expVal2 = e1.cval();
+      Object expVal2 = e2.cval();
       if (expVal1 == null || expVal2 == null)
         return null;
       else if (expVal1 instanceof Integer && expVal2 instanceof Integer)
