@@ -1,0 +1,8 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id Body) ) (Id b) (NewObj (Id Body) ()) 
+   CallStmt (Id b) (Id go) ()
+ ClassDecl (Id Body) () 
+  MethodDecl (Void) (Id go) ()
+   Print (StrVal "Go!") 

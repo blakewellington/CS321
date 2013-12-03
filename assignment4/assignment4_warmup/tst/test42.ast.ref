@@ -1,0 +1,8 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ObjType (Id Body) ) (Id b) (NewObj (Id Body) ()) 
+   Print (Binop + (Field (Id b) (Id i) ) (Field (Id b) (Id j) ) ) 
+ ClassDecl (Id Body) () 
+  VarDecl (IntType) (Id i) (IntVal 5) 
+  VarDecl (IntType) (Id j) (Binop + (Id i) (IntVal 2) ) 

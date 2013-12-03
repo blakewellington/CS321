@@ -1,0 +1,7 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (BoolType) (Id b) (Binop || (Binop > (IntVal 1) (IntVal 2) ) (Binop && (Binop < (IntVal 3) (IntVal 4) ) (Unop ! (False) ) ) ) 
+   VarDecl (IntType) (Id i) (Binop - (Binop + (IntVal 2) (Binop * (IntVal 2) (IntVal 4) ) ) (Binop / (IntVal 9) (IntVal 3) ) ) 
+   Print (Id b) 
+   Print (Id i) 

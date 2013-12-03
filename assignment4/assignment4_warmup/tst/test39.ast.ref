@@ -1,0 +1,12 @@
+Program
+ ClassDecl (Id prog) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ArrayType (IntType) ) (Id a) (NewArray (IntType) 2) 
+   VarDecl (IntType) (Id i) (IntVal 0) 
+   Assign (ArrayElm (Id a) (IntVal 0) ) (IntVal 3) 
+   Assign (ArrayElm (Id a) (IntVal 1) ) (IntVal 5) 
+   While (Binop < (Id i) (IntVal 2) ) 
+    {
+     Print (ArrayElm (Id a) (Id i) ) 
+     Assign (Id i) (Binop + (Id i) (IntVal 1) ) 
+    }

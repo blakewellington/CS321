@@ -1,0 +1,85 @@
+Program
+ ClassDecl (Id prog) () 
+  MethodDecl (Void) (Id main) ()
+   VarDecl (ArrayType (IntType) ) (Id numbers) (NewArray (IntType) 10) 
+   VarDecl (IntType) (Id cnt) (IntVal 0) 
+   While (Binop < (Id cnt) (IntVal 10) ) 
+    {
+     Assign (ArrayElm (Id numbers) (Id cnt) ) (Binop - (IntVal 10) (Id cnt) ) 
+     Assign (Id cnt) (Binop + (Id cnt) (IntVal 1) ) 
+    }
+   CallStmt () (Id selectionSort) ((Id numbers) (Id cnt) )
+   Print (StrVal "Your numbers in sorted order are:") 
+   Assign (Id cnt) (IntVal 0) 
+   While (Binop < (Id cnt) (IntVal 10) ) 
+    {
+     Print (ArrayElm (Id numbers) (Id cnt) ) 
+     Assign (Id cnt) (Binop + (Id cnt) (IntVal 1) ) 
+    }
+  MethodDecl (Void) (Id testReturnEarly) ()
+    Print (StrVal "This statement will always execute.")
+    Print (StrVal "This statement will always execute.")
+    Return ()
+    Print (StrVal "This statement will always execute.")
+
+  MethodDecl (Void) (Id testReturnOnTwoBranchesOfIfStatement) ()
+    If (Binop < (IntVal 1) (IntVal 2))
+      {
+	  Print (StrVal "This statement will always execute.")
+	  Print (StrVal "This statement will always execute.")
+	  Print (StrVal "This statement will always execute.")
+      }
+	Else
+      {
+	  Print (StrVal "This will NEVER execute.")
+	  Print (StrVal "This will NEVER execute.")
+	  Print (StrVal "This will NEVER execute.")
+      }
+        Print (StrVal "This will always execute.")
+        Print (StrVal "This will always execute.")
+        Print (StrVal "This will always execute.")
+	  
+  MethodDecl (Void) (Id testReturnOnTwoBranchesOfIfStatement) ()
+    If (Binop < (IntVal 1) (IntVal 2))
+	  Print (StrVal "This statement will always execute.")
+	Else
+	  Print (StrVal "This will NEVER execute.")
+        Print (StrVal "This will always execute.")
+	  
+  MethodDecl (Void) (Id TestInfiniteWhileLoop) ((Formal (ArrayType (IntType) ) (Id A) ) (Formal (IntType) (Id count) ) )
+   VarDecl (IntType) (Id temp) () 
+   While (Binop <= (IntVal 0) (IntVal 2) ) 
+    {
+     Print (StrVal "This is an infinite loop.")
+     Assign (Id j) (IntVal 0) 
+     Assign (Id k) (IntVal 0) 
+     While (Binop <= (IntVal 1) (IntVal 2) ) 
+      {
+       If (Binop > (ArrayElm (Id A) (Id j) ) (ArrayElm (Id A) (Id k) ) ) 
+        Assign (Id k) (Id j) 
+       Assign (Id j) (Binop + (Id j) (IntVal 1) ) 
+      }
+     If (Binop != (Id k) (Id i) ) 
+      {
+       Assign (Id temp) (ArrayElm (Id A) (Id k) ) 
+       Assign (ArrayElm (Id A) (Id k) ) (ArrayElm (Id A) (Id i) ) 
+       Assign (ArrayElm (Id A) (Id i) ) (Id temp) 
+      }
+     Assign (Id i) (Binop - (Id i) (IntVal 1) ) 
+    }
+    Assign (Id temp) (ArrayElm (Id A) (Id k) ) 
+    Assign (ArrayElm (Id A) (Id k) ) (ArrayElm (Id A) (Id i) ) 
+    Assign (ArrayElm (Id A) (Id i) ) (Id temp) 
+
+  MethodDecl (Void) (Id testReturnOnTwoBranchesOfIfStatement) ()
+    If (Binop < (IntVal 2) (IntVal 2))
+	  Print (StrVal "This statement will always execute.")
+	Else
+	  Print (StrVal "This will NEVER execute.")
+	  
+
+  MethodDecl (Void) (Id testReturnOnTwoBranchesOfIfStatement) ()
+    If (Binop < (IntVal 2) (IntVal 2))
+	  Print (StrVal "This statement will always execute.")
+	Else
+	  Print (StrVal "This will NEVER execute.")

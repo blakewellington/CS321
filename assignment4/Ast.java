@@ -115,12 +115,12 @@ class Ast {
 
     // StmtList contains a list of Stmt
     // Set the reachability of each Stmt in StmtList
-    // pass in the notReachable boolean each time.
-    boolean setReachability(boolean notReachable) {
-      boolean stmtListHasReturned = false;
+    // pass in the isReachable boolean each time.
+    boolean setReachability(boolean isReachable) {
+      boolean stmtListHasNotReturned = isReachable;
       for (int i=0; i<size(); i++)
-        stmtListHasReturned = elementAt(i).setReachability(stmtListHasReturned);
-      return stmtListHasReturned;
+        stmtListHasNotReturned = elementAt(i).setReachability(stmtListHasNotReturned);
+      return stmtListHasNotReturned;
     }
   }
 
@@ -180,11 +180,10 @@ class Ast {
     FormalList fl;	// formal parameters
     VarDeclList vl;	// local variables
     StmtList sl;	// method body
-    // notReachable indicates that this method has returned
+    // isReachable indicates that this method has not returned
     // (used for testing reachability)
-    // It is initialized at the MethodDecl level as false
-    // because when a method is instantiated, it has not yet returned.
-    boolean notReachable = false; 
+    // It is initialized at the MethodDecl level as true
+    boolean isReachable = true; 
 
     MethodDecl(Type at, Id i, FormalList afl, VarDeclList avl, StmtList asl) {
       t=at; mid=i; fl=afl; vl=avl; sl=asl;
@@ -197,8 +196,8 @@ class Ast {
     public void setReachability() {
       // MethodDecl contains a StmtList
       // Set the reachability of my StmtList
-      // pass in the initial value of notReachable: false
-      sl.setReachability(notReachable);
+      // pass in the initial value of isReachable: true
+      sl.setReachability(isReachable);
     }
 
   }
@@ -270,7 +269,7 @@ class Ast {
     // a Return statement, the boolean value is set to true.
     // Once true, all subsequent calls to a statement's setReachability()
     // method will set the reachable flag (boolean) to false.
-    public abstract boolean setReachability(boolean notReachable) ;
+    public abstract boolean setReachability(boolean isReachable) ;
   }
 
   public static class Block extends Stmt {
@@ -287,8 +286,8 @@ class Ast {
     }
 
     // A Block contains a Statement List. Call setReachability on it.
-    public boolean setReachability(boolean notReachable) {
-      return sl.setReachability(notReachable);
+    public boolean setReachability(boolean isReachable) {
+      return sl.setReachability(isReachable);
     }
 
   }
@@ -303,11 +302,11 @@ class Ast {
       DUMP(!reachable,Ast.tab, "Assign "); DUMP(lhs); DUMP(rhs); DUMP("\n"); 
     }
 
-    public boolean setReachability(boolean notReachable)
+    public boolean setReachability(boolean isReachable)
     {
       // Set the reachable property of this statement
-      reachable = reachable && !notReachable;
-      return notReachable;
+      reachable = reachable && isReachable;
+      return isReachable;
     }
   }
 
@@ -325,12 +324,12 @@ class Ast {
 
     // Call statements are handled in the standard manner:
     // Just set reachable to true or false depending on what is 
-    // passed in (notReachable).
-    public boolean setReachability(boolean notReachable)
+    // passed in (isReachable).
+    public boolean setReachability(boolean isReachable)
     {
       // Set the reachable property of this statement
-      reachable = reachable && !notReachable;
-      return notReachable;
+      reachable = reachable && isReachable;
+      return isReachable;
     }
   }
 
@@ -352,9 +351,9 @@ class Ast {
 
     // An If statement can branch. Call setReachability on each
     // branch.
-    public boolean setReachability(boolean notReachable) {
+    public boolean setReachability(boolean isReachable) {
       boolean eBool;
-      reachable = reachable && !notReachable;
+      reachable = reachable && isReachable;
       
       // Evaluate the expression for constant:
       // Instantiate eVal as the value of e.cval() so that we
@@ -368,19 +367,17 @@ class Ast {
       if (eVal instanceof Boolean) {
         eBool = (Boolean)eVal;
     	if (s1 != null)
-          s1.setReachability(!eBool);
+          s1.setReachability(eBool);
     	if (s2 != null)
-    	  s2.setReachability(eBool);
+    	  s2.setReachability(!eBool);
       }
     
       // Now deal with Return statements causing unreachability.
-      notReachable = s1.setReachability(notReachable);
+      isReachable = s1.setReachability(isReachable);
       if (s2 != null)
-        notReachable = s2.setReachability(notReachable);
-      return notReachable;
+        isReachable = s2.setReachability(isReachable);
+      return isReachable;
     }
-
-
   }
 
   public static class While extends Stmt {
@@ -394,11 +391,11 @@ class Ast {
       Ast.tab++; DUMP(s); Ast.tab--;
     }
 
-    // A While statement contains a statement. Call setReachability()
-    // on its statement and return the value back up the chain.
-    public boolean setReachability(boolean notReachable) {
-
+    public boolean setReachability(boolean isReachable) {
       boolean eBool;
+
+      // Set the reachable property of this statement
+      reachable = reachable && isReachable;
 
       // Evaluate the expression for constant:
       // Instantiate eVal as the value of e.cval() so that we
@@ -406,17 +403,20 @@ class Ast {
       // evaluate it.
       Object eVal = e.cval();
       
-      // Set the reachable property of this statement
-      reachable = reachable && !notReachable;
-
       // If the expression is a constant boolean, then evaluate the 
       // boolean for true/false.  If it is false, then s is unreachable.
+      // If it is true, it an infinite loop and all subsequent statements
+      // are unreachable!
       if (eVal instanceof Boolean) {
         eBool = (Boolean)eVal;
-    	if (s != null)
-          s.setReachability(!eBool);
-	  }
-      return s.setReachability(notReachable);
+        s.setReachability(eBool);
+        if (eBool) {
+          // This is an infinite loop
+          // All subsequent statements are unreachable, but this one is fine.
+          return false;
+        }
+      }
+      return s.setReachability(isReachable);
     }
 
 
@@ -432,12 +432,12 @@ class Ast {
     }
     // Print statements are handled in the standard manner:
     // Just set reachable to true or false depending on what is 
-    // passed in (notReachable).
-    public boolean setReachability(boolean notReachable)
+    // passed in (isReachable).
+    public boolean setReachability(boolean isReachable)
     {
       // Set the reachable property of this statement
-      reachable = reachable && !notReachable;
-      return notReachable;
+      reachable = reachable && isReachable;
+      return isReachable;
     }
   }
 
@@ -455,11 +455,11 @@ class Ast {
     // it ALWAYS returns true. This is because whenever Return
     // is called, it means that the method is returning and all
     // subsequent statements in the method will be unreachable.
-    public boolean setReachability(boolean notReachable)
+    public boolean setReachability(boolean isReachable)
     {
       // Set the reachable property of this statement
-      reachable = reachable && !notReachable;
-      return true;
+      reachable = reachable && isReachable;
+      return false;
     }
   }
 
@@ -508,8 +508,10 @@ class Ast {
         return null;
       else if (expVal1 instanceof Integer && expVal2 instanceof Integer)
       {
+        // Cast the objects as integers
         int e1Int = (Integer)expVal1;
         int e2Int = (Integer)expVal2;
+
         // INTEGER EXPRESSIONS
         if (op == BOP.ADD) {
           returnVal = (e1Int + e2Int);
@@ -545,14 +547,22 @@ class Ast {
 
       else if (expVal1 instanceof Boolean && expVal2 instanceof Boolean)
       {
-        // BOOLEAN EXPRESSIONS
+        // Cast the objects as booleans
         boolean e1Bool = (Boolean)expVal1;
         boolean e2Bool = (Boolean)expVal2;
+
+        // BOOLEAN EXPRESSIONS
         if (op == BOP.AND) {
           returnVal = (e1Bool && e2Bool);
         }
         else if (op == BOP.OR) {
           returnVal = (e1Bool || e2Bool);
+        }
+        else if (op == BOP.EQ) {
+          returnVal = (e1Bool == e2Bool);
+        }
+        else if (op == BOP.NE) {
+          returnVal = (e1Bool != e2Bool);
         }
       }
       return returnVal;

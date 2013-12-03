@@ -1,0 +1,17 @@
+This is a version of the assignment4 materials in which
+Ast.java has been modified to include a very simple
+(and highly incorrect!) version of the setReachability()
+method. This is meant to help you get started with 
+writing the real setReachability() method.
+
+Note that the reachable flag on every statement is initialized
+to true when the Stmt node is constructed.  The implementation
+of setReachability() given here traverses the AST and sets
+the flag to *false* on every statement.  The point of this is
+just to illustrate what a simple tree traversal looks like 
+in the AST context. You will still need to change the behavior
+of this traversal (and perhaps add other traversal functions)
+to get the desired behavior for your Ast1.java and Ast2.java.
+
+
+

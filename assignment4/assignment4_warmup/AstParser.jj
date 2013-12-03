@@ -1,0 +1,249 @@
+// AstParser.jj 
+//   -- Reconstruct AST from dump format (.ast file).
+//   
+// CS321 Languages and Compiler Design I 
+// Jingke Li, Portland State University
+
+
+PARSER_BEGIN(AstParser)
+public class AstParser {}
+PARSER_END(AstParser)
+
+SKIP : /* WHITE SPACE */
+{
+  " " | "\t" | "\n" | "\r" | "\f"
+}
+
+TOKEN : 
+{
+  <kwArrayElm:	     "ArrayElm">	  
+| <kwArrayType:	     "ArrayType">	   
+| <kwAssign:	     "Assign">	   
+| <kwBinop:	     "Binop">	   
+| <kwBoolType:	     "BoolType">	   
+| <kwCall:	     "Call">	     	   
+| <kwCallStmt:	     "CallStmt">	   
+| <kwClassDecl:	     "ClassDecl">	   
+| <kwElse:	     "Else">	     	  
+| <kwFalse:	     "False">	     	   
+| <kwField:	     "Field">	   
+| <kwFormal:	     "Formal">	   
+| <kwId:	     "Id">	     	  
+| <kwIf:	     "If">	     	  
+| <kwIntType:	     "IntType">	   
+| <kwIntVal:	     "IntVal">	     	  
+| <kwMethodDecl:     "MethodDecl">     
+| <kwNewArray:	     "NewArray">	   
+| <kwNewObj:	     "NewObj">	   
+| <kwObjType:        "ObjType">     
+| <kwPrint:	     "Print">	   
+| <kwProgram:	     "Program">	   
+| <kwReturn:	     "Return">	   
+| <kwStrVal:	     "StrVal">	     	   
+| <kwThis:	     "This">	     	   
+| <kwTrue:	     "True">	     	   
+| <kwUnop:	     "Unop">	     	  
+| <kwVarDecl:	     "VarDecl">	   
+| <kwVoid:	     "Void">	   
+| <kwWhile:          "While">          
+| <#Digit:  ["0"-"9"]>
+| <#Letter: (["A"-"Z"]|["a"-"z"])>
+}
+
+TOKEN : /* INTVAL */
+{
+  <INTVAL: (<Digit>)+> 
+  { try { 
+      Integer.parseInt(matchedToken.image); 
+    } catch (Exception e) { 
+	throw new TokenMgrError("Lexical error at line " + matchedToken.beginLine + 
+				", column " + matchedToken.beginColumn + 
+				". Integer overflow: " + matchedToken.image, 0);
+    } 
+  }
+}
+
+TOKEN : /* STRVAL */
+{
+  <STRVAL: ("\"" (~["\"","\n"])+ "\"")>
+  { if (matchedToken.image.length() > 257) 
+      throw new TokenMgrError("Lexical error at line " + matchedToken.beginLine + 
+			      ", column " + matchedToken.beginColumn + 
+			      ". String length over 255: " + matchedToken.image, 0); 
+  }
+}
+
+TOKEN : /* ID */
+{
+  <ID: <Letter> (<Letter>|<Digit>|"_")*>
+  { if (matchedToken.image.length() > 255) 
+      throw new TokenMgrError("Lexical error at line " + matchedToken.beginLine + 
+			      ", column " + matchedToken.beginColumn + 
+			      ". Id length over 255: " + matchedToken.image, 0);
+  }
+}
+
+Ast.Program Program() :
+{ Ast.ClassDeclList cl; }
+{
+  "Program" cl=astClassDeclList() <EOF>
+  { return new Ast.Program(cl); }
+}
+
+Ast.ClassDeclList astClassDeclList() :
+{ Ast.ClassDecl c; Ast.ClassDeclList cl = new Ast.ClassDeclList(); }
+{
+  ( c=astClassDecl() { cl.add(c); } )*
+  { return cl; }
+}
+
+Ast.VarDeclList astVarDeclList() :
+{ Ast.VarDecl v; Ast.VarDeclList vl = new Ast.VarDeclList(); }
+{
+  ( v=astVarDecl() { vl.add(v); } )*
+  { return vl; }
+}
+
+Ast.MethodDeclList astMethodDeclList() :
+{ Ast.MethodDecl m; Ast.MethodDeclList ml = new Ast.MethodDeclList(); }
+{
+  ( m=astMethodDecl() { ml.add(m); } )*  
+  { return ml; }
+}
+
+Ast.FormalList astFormalList() :
+{ Ast.Formal f; Ast.FormalList fl = new Ast.FormalList(); }
+{
+  "(" ( f=astFormal() { fl.add(f); } )* ")"
+  { return fl; }
+}
+
+Ast.StmtList astStmtList() :
+{ Ast.Stmt s; Ast.StmtList sl = new Ast.StmtList(); }
+{
+  ( s=astStmt() { sl.add(s); } )*
+  { return sl; }
+}
+
+Ast.ExpList astExpList() :
+{ Ast.Exp e; Ast.ExpList el = new Ast.ExpList(); }
+{
+  "(" ( e=astExp() { el.add(e); } )* ")"
+  { return el; }
+}
+
+Ast.ClassDecl astClassDecl() :
+{ Ast.Exp e1, e2; Ast.VarDeclList vl; Ast.MethodDeclList ml; }
+{
+  "ClassDecl" e1=astExp() e2=astExp() 
+    vl=astVarDeclList() ml=astMethodDeclList()
+  { return new Ast.ClassDecl((Ast.Id)e1,(Ast.Id)e2,vl,ml); }
+}
+
+Ast.VarDecl astVarDecl() :
+{ Ast.Type t; Ast.Exp e1, e2; }
+{
+  "VarDecl" t=astType() e1=astExp() e2=astExp()
+  { return new Ast.VarDecl(t,(Ast.Id)e1,e2); }
+}
+
+Ast.MethodDecl astMethodDecl() :
+{ Ast.Type t; Ast.Exp e; Ast.FormalList fl;
+  Ast.VarDeclList vl; Ast.StmtList sl; }
+{
+  "MethodDecl" t=astType() e=astExp() fl=astFormalList()  
+    vl=astVarDeclList() sl=astStmtList()
+  { return new Ast.MethodDecl(t,(Ast.Id)e,fl,vl,sl); }
+}
+
+Ast.Formal astFormal() :
+{ Ast.Type t; Ast.Exp e; }
+{
+  "(" "Formal" t=astType() e=astExp() ")"
+  { return new Ast.Formal(t,(Ast.Id)e); }
+}
+
+Ast.Type astType() :
+{ Ast.Type t; Ast.Exp e; }
+{
+  "("			
+  ( "IntType"               { t = new Ast.IntType(); }
+  | "BoolType"              { t = new Ast.BoolType(); } 
+  | "ObjType" e=astExp()    { t = new Ast.ObjType((Ast.Id)e); }
+  | "ArrayType" t=astType() { t = new Ast.ArrayType(t); }
+  | "Void"                  { t = null; } )
+  ")" 
+  { return t; }
+}
+
+Ast.Stmt astStmt() :
+{ Ast.Exp e1, e2; Ast.Stmt s, s1, s2=null;
+  Ast.ExpList el; Ast.StmtList sl; }
+{
+  ( "{" sl=astStmtList() "}"         { s = new Ast.Block(sl); }
+  | "Assign" e1=astExp() e2=astExp() { s = new Ast.Assign(e1,e2); }
+  | "CallStmt" e1=astExp() 
+      e2=astExp() el=astExpList()    { s = new Ast.CallStmt(e1,(Ast.Id)e2,el); }
+  | "If" e1=astExp() s1=astStmt() 
+      [ LOOKAHEAD(2) "Else" s2=astStmt() ]  { s = new Ast.If(e1,s1,s2); }
+  | "While" e1=astExp() s1=astStmt() { s = new Ast.While(e1,s1); }
+  | "Print" e1=astExp()      	     { s = new Ast.Print(e1); }
+  | "Return" e1=astExp()             { s = new Ast.Return(e1); } )
+  { return s; }
+}
+
+Ast.BOP binOp() :
+{}
+{ 
+  ( "+"    { return Ast.BOP.ADD; }
+  | "-"    { return Ast.BOP.SUB; }
+  | "*"    { return Ast.BOP.MUL; }
+  | "/"    { return Ast.BOP.DIV; }
+  | "&&"   { return Ast.BOP.AND; }
+  | "||"   { return Ast.BOP.OR;  } 
+  | "=="   { return Ast.BOP.EQ; }
+  | "!="   { return Ast.BOP.NE; }
+  | "<"    { return Ast.BOP.LT; }
+  | "<="   { return Ast.BOP.LE; }
+  | ">"    { return Ast.BOP.GT; }
+  | ">="   { return Ast.BOP.GE; } 
+  | "??"   { return Ast.BOP.UND; } 
+  )
+}
+
+Ast.UOP unOp() :
+{}
+{ 
+  ( "-"    { return Ast.UOP.NEG; }
+  | "!"    { return Ast.UOP.NOT; }
+  | "?"    { return Ast.UOP.UND; } 
+  )
+}
+
+Ast.Exp astExp() :
+{ Token n; int size;
+  Ast.Type t; Ast.BOP bop; Ast.UOP uop; Ast.Exp e=null, e1, e2; Ast.ExpList el; }
+{
+  "("	
+  [ "ArrayElm" e1=astExp() e2=astExp()
+			        { e = new Ast.ArrayElm(e1,e2); }
+  | "Binop" bop=binOp() e1=astExp() e2=astExp()
+    	    	       		{ e = new Ast.Binop(bop,e1,e2); }
+  | "Call" e1=astExp() e2=astExp() el=astExpList()
+				{ e = new Ast.Call(e1,(Ast.Id)e2,el); }
+  | "Id" n=<ID>			{ e = new Ast.Id(n.image); }
+  | "IntVal" n=<INTVAL>		{ e = new Ast.IntVal(Integer.parseInt(n.image)); }
+  | "False" 			{ e = new Ast.False(); }
+  | "Field" e1=astExp() e2=astExp()
+    	     		        { e = new Ast.Field(e1,(Ast.Id)e2); }
+  | "NewArray" t=astType() n=<INTVAL>
+				{ e = new Ast.NewArray((Ast.Type)t,Integer.parseInt(n.image)); }
+  | "NewObj" e1=astExp() el=astExpList()
+				{ e = new Ast.NewObj((Ast.Id)e1,el); }
+  | "StrVal" n=<STRVAL>         { String s = n.image; 
+                                  e = new Ast.StrVal(s.substring(1,s.length()-1)); }
+  | "True"   			{ e = new Ast.True(); }
+  | "Unop" uop=unOp() e1=astExp() { e = new Ast.Unop(uop,e1); } ]
+  ")"
+  { return e; }
+}

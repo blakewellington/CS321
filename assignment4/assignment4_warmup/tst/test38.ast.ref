@@ -3,7 +3,7 @@ Program
   MethodDecl (Void) (Id main) ()
    VarDecl (ArrayType (IntType) ) (Id numbers) (NewArray (IntType) 10) 
    VarDecl (IntType) (Id cnt) (IntVal 0) 
-   While (Binop < (IntVal 12) (IntVal 10) ) 
+   While (Binop < (Id cnt) (IntVal 10) ) 
     {
      Assign (ArrayElm (Id numbers) (Id cnt) ) (Binop - (IntVal 10) (Id cnt) ) 
      Assign (Id cnt) (Binop + (Id cnt) (IntVal 1) ) 
@@ -31,7 +31,7 @@ Program
         Assign (Id k) (Id j) 
        Assign (Id j) (Binop + (Id j) (IntVal 1) ) 
       }
-     If (Binop != (IntVal 2) (IntVal 2) ) 
+     If (Binop != (Id k) (Id i) ) 
       {
        Assign (Id temp) (ArrayElm (Id A) (Id k) ) 
        Assign (ArrayElm (Id A) (Id k) ) (ArrayElm (Id A) (Id i) ) 
