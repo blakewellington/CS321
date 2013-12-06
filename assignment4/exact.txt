@@ -1,0 +1,23 @@
+It is impossible to write an exact static analysis for unreachability for most programming languages. The proof of this relies upon the proof of the halting problem, which ultimately states that it is impossible to prove that a program terminates for all program-input pairs. However, the MiniJava compiler is not an infinite set of possible programs. It is a single one and it has the distinction (at this phase of development) that it does not accept any input from users or the environment. At compile time, there are no unknowns about the program.  All variables have known values, therefore, all branches of the logic can be deterministically analyzed to determine reachability.
+
+To implement such a solution for the miniJava compiler, we just need to extend our work to type check all variables and evaluate them to their values (boolean or integer). The assignment did not require us to drill down into the value of variables, merely to analyze the net value of each literal expression.  If the cval() method was extended to evaluate all expressions to their net value, it would then be possible to determine reachability for any miniJava program.
+
+This was a difficult conclusion for me to reach, since I kept coming back to the Halting Problem. But then I considered the problem by reducing it to its simplest elements. What if I had a compiler that was so simple that any input could be decided to have unreachable code? For example, consider a "compiler" with a single rule: Read in the tokens from an AST. If a token stream contains a Print token, halt.  This program is essentially the same question, just in a simpler form. It is trivial to determine halting for this compiler on any input. Therefore, I was able to conclude that, since there is no external input allowed in the miniJava language, it would be possible to exactly determine unreachability.
+
+But again, this is incorrect.  After further consideration, I have concluded that it is impossible to write a miniJava compiler that will exactly test for unreachability.  Consider the following example:
+
+int SomeMethod()
+{
+  int x = 123;
+  while(x >= x / 2) 
+  {
+    x = x / 2;
+  }
+  print ("This line will never be reached.");
+}
+
+The value of x will always be some small, non-negative number, ultimately reducing to 1. Any small, non-negative number is always greater than or equal to half of itself. Therefore, the print statement will never be reached. But the compiler does not know that and will not flag this as unreachable code.
+
+Of course, we can program around this by including rules of integers, but then it is just another exercise to come up with another example of an unreachable statement. We are caught in an endless loop of writing additional rules for the compiler to follow and there is no way of addressing them all in the compiler. This problem does indeed come down to the halting problem.
+
+Therefore, my final answer is No.  We cannot write an exact analysis for reachability in miniJava.

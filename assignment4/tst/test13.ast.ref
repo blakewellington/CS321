@@ -5,6 +5,7 @@ Program
    Print (Call (Id a) (Id go) ()) 
  ClassDecl (Id A) () 
   MethodDecl (IntType) (Id go) ()
+  Return ()
    If (Binop < (IntVal 1) (IntVal 2) ) 
     Print (IntVal 1) 
    Else

@@ -117,7 +117,7 @@ class Ast {
     // Set the reachability of each Stmt in StmtList
     // pass in the hasReturned boolean each time.
     boolean setReachability(boolean hasReturned) {
-      boolean stmtListHasReturned = false;
+      boolean stmtListHasReturned = hasReturned;
       for (int i=0; i<size(); i++)
         stmtListHasReturned = elementAt(i).setReachability(stmtListHasReturned);
       return stmtListHasReturned;
