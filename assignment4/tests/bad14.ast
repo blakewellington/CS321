@@ -1,0 +1,21 @@
+Program
+ ClassDecl (Id test) () 
+  MethodDecl (Void) (Id main) ()
+   Print (StrVal "123") 
+   Print (IntVal 123) 
+   If (Binop == (Id i) (IntVal 5) ) 
+    {
+     Print (StrVal "REACHABLE") 
+     Return () 
+     Print (StrVal "UNREACHABLE") 
+    }
+   Else
+    {
+     Print (StrVal "REACHABLE") 
+     While (False) 
+      {
+       Print (StrVal "UNREACHABLE") 
+      }
+     Print (StrVal "REACHABLE") 
+    }
+   Print (StrVal "REACHABLE") 

@@ -27,9 +27,9 @@ Program
      Print (StrVal "This statement will always execute.") 
     }
    Else
-    {
+!   {
 !    Print (StrVal "This will NEVER execute.") 
-    }
+!   }
    Print (StrVal "This will always execute.") 
   MethodDecl (Void) (Id testReturnOnTwoBranchesOfIfStatement) ()
    If (Binop < (IntVal 1) (IntVal 2) ) 
@@ -51,11 +51,11 @@ Program
        Assign (Id j) (Binop + (Id j) (IntVal 1) ) 
       }
 !    If (Binop != (Id k) (Id i) ) 
-      {
+!     {
 !      Assign (Id temp) (ArrayElm (Id A) (Id k) ) 
 !      Assign (ArrayElm (Id A) (Id k) ) (ArrayElm (Id A) (Id i) ) 
 !      Assign (ArrayElm (Id A) (Id i) ) (Id temp) 
-      }
+!     }
 !    Assign (Id i) (Binop - (Id i) (IntVal 1) ) 
     }
 !  Assign (Id temp) (ArrayElm (Id A) (Id k) ) 

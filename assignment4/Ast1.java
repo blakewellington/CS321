@@ -288,6 +288,7 @@ class Ast {
 
     // A Block contains a Statement List. Call setReachability on it.
     public boolean setReachability(boolean hasReturned) {
+      reachable = !hasReturned;
       return sl.setReachability(hasReturned);
     }
 
